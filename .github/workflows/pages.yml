@@ -1,9 +1,6 @@
 name: Pages
 
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+on: workflow_dispatch   # disabled: no automatic runs; trigger by hand if ever needed
 
 permissions:
   contents: read
@@ -25,8 +22,8 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
-          cp handoff/Writer.dc.html _site/index.html
-          cp handoff/support.js _site/support.js
+          cp index.html _site/index.html
+          cp support.js _site/support.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

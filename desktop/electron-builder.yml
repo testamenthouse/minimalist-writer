@@ -1,4 +1,4 @@
-appId: com.fegter.writer
+appId: com.testamenthouse.writer
 productName: Writer
 artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 directories:

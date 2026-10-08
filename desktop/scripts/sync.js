@@ -1,20 +1,20 @@
-// Pulls the authoritative prototype (../handoff) into ./app for packaging.
-// handoff/Writer.dc.html stays the only source of the UI; never edit ./app by hand.
+// Pulls the app (../index.html + ../support.js, the repo root) into ./app for packaging.
+// The root index.html stays the only source of the UI; never edit ./app by hand.
 const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const handoff = path.join(root, '..', 'handoff');
+const src = path.join(root, '..');
 const app = path.join(root, 'app');
 const fonts = path.join(app, 'fonts');
 
 fs.rmSync(app, { recursive: true, force: true });
 fs.mkdirSync(fonts, { recursive: true });
 
-let html = fs.readFileSync(path.join(handoff, 'Writer.dc.html'), 'utf8');
+let html = fs.readFileSync(path.join(src, 'index.html'), 'utf8');
 const before = html;
 html = html.replace(/<link href="https:\/\/fonts\.googleapis\.com\/[^"]*" rel="stylesheet">/, '<link href="./fonts/inter.css" rel="stylesheet">');
-if (html === before) throw new Error('sync: Google Fonts link not found in Writer.dc.html');
+if (html === before) throw new Error('sync: Google Fonts link not found in index.html');
 const csp = "default-src 'self' app:; script-src 'self' 'unsafe-inline' 'unsafe-eval' app:; style-src 'self' 'unsafe-inline' app:; font-src 'self' app:; img-src 'self' data: blob: app:; connect-src 'self' app:; frame-src 'self' about: blob: app:";
 const resources = {
   'https://unpkg.com/react@18.3.1/umd/react.production.min.js': './vendor/react.js',
@@ -26,9 +26,9 @@ html = html.replace('<script src="./support.js"></script>',
   '<script src="./support.js"></script>');
 if (!html.includes('Content-Security-Policy')) throw new Error('sync: support.js script tag not found');
 fs.writeFileSync(path.join(app, 'index.html'), html);
-fs.copyFileSync(path.join(handoff, 'support.js'), path.join(app, 'support.js'));
+fs.copyFileSync(path.join(src, 'support.js'), path.join(app, 'support.js'));
 for (const f of fs.readdirSync(path.join(root, 'vendor', 'inter'))) fs.copyFileSync(path.join(root, 'vendor', 'inter', f), path.join(fonts, f));
 const vendor = path.join(app, 'vendor'); fs.mkdirSync(vendor, { recursive: true });
 for (const f of fs.readdirSync(path.join(root, 'vendor', 'react'))) fs.copyFileSync(path.join(root, 'vendor', 'react', f), path.join(vendor, f));
 require('child_process').execSync('node scripts/build-dictate.js', { cwd: root, stdio: 'inherit' });
-console.log('synced handoff → desktop/app + dictate');
+console.log('synced index.html → desktop/app + dictate');

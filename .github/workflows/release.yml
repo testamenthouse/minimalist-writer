@@ -1,9 +1,6 @@
 name: Release
 
-on:
-  push:
-    tags: ['v*']
-  workflow_dispatch:
+on: workflow_dispatch   # disabled: no automatic runs; trigger by hand if ever needed
 
 permissions:
   contents: write

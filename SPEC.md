@@ -1,13 +1,10 @@
-# Handoff: Writer — minimalist book writing app
+# Writer — specification
 
 ## Overview
 A browser-based, offline-first book writing app. A **library** is a folder on disk; each **subfolder** is a book (except the reserved `Templates/`); each `NN-title.md` file inside is a chapter. The app is a **folder utility**: it reads and writes those files directly (File System Access API) and holds nothing else — the folder is the only source of truth; `localStorage` stores settings only and IndexedDB stores the folder **handle** only. On load the app reopens the remembered folder (reading it fresh from disk); until a folder is open the app shows a single gate screen and nothing else works. A gate screen, two screens (Books, Book), a fullscreen Write mode, a per-chapter Notes pane, and three overlays (Print, Settings, Delete). Dictation types into the chapter at the caret (the Mac app through the Mac's own on-device speech recognizer, the browser version through Chrome's). No server, no accounts, no analytics — everything stays on the user's machine.
 
-## About the design files
-`Writer.dc.html` is a **working HTML prototype** that demonstrates the intended look and behaviour end-to-end, including real file I/O. `Writer.html` is the same thing bundled into one standalone file. They are **design references**, not production code to copy: recreate the UI and behaviour in your target stack (React/Vue/Svelte, Electron, Tauri, etc.) using its conventions. If no stack exists yet, a small React + TypeScript app (Vite) is the natural fit — the prototype is already React-shaped (a single class component with `renderVals()`).
-
-## Fidelity
-**High-fidelity.** Colours, type, spacing, radii and interactions are final. Recreate pixel-perfectly. The prototype has been iterated with the user over many rounds; the "Behaviour rules" section lists things they explicitly rejected — do not reintroduce them.
+## About this document
+`index.html` at the repo root (with `support.js`, its small template runtime) **is** the app: a single class component with `renderVals()`, served as-is by GitHub Pages and wrapped by the Electron shell in `desktop/`. This file describes every screen, rule and file-format detail it implements. Colours, type, spacing, radii and interactions are final; the "Behaviour rules" section lists things the user explicitly rejected — do not reintroduce them. Update this file and `DESIGN-NOTES.md` with every change.
 
 ---
 
@@ -227,13 +224,12 @@ Same card: `Delete “Title”?` / `Delete “Book”?` / `Delete “Template”
 No images. Icons are inline 24-viewBox stroke SVGs (Lucide-equivalent): arrow-left, plus, printer, download, settings/gear, search, maximize, mic, sticky-note (notes), trash, x, chevron-left/right/up/down, check. Fonts: Inter from Google Fonts (`wght 400–700`) in the prototype; bundle locally in production.
 
 ## Desktop app (`../desktop`)
-Electron shell, built 2026-10-07. `desktop/scripts/sync.js` copies `Writer.dc.html` → `desktop/app/index.html` (+ `support.js`) before every run/build, swapping the Google Fonts link for bundled Inter and pointing `window.__resources` at vendored React/ReactDOM so the app is fully offline. The main process serves `app://writer/` from `desktop/app`, grants the page the File System Access API without prompts (so the remembered folder opens straight into the library — no gate after the first pick), and runs `electron-updater` against GitHub Releases: checks on launch and hourly, downloads quietly, installs on quit, app menu offers **Restart to Update**. Prototype runtime note: `support.js` loads React from unpkg unless `window.__resources` overrides it — the GitHub Pages build still uses the CDN. Run with `ELECTRON_RUN_AS_NODE` unset (VS Code shells set it, which makes Electron behave as plain Node). `desktop/src/preload.js` exposes only `window.dictate` (start / stop / on); `sync` also compiles the Swift dictation helper into `desktop/bin/dictate`, packaged as an extra resource; `DICTATE_BIN=<fake> npm run smoke` exercises the bridge.
+Electron shell, built 2026-10-07. `desktop/scripts/sync.js` copies the root `index.html` → `desktop/app/index.html` (+ `support.js`) before every run/build, swapping the Google Fonts link for bundled Inter and pointing `window.__resources` at vendored React/ReactDOM so the app is fully offline. The main process serves `app://writer/` from `desktop/app`, grants the page the File System Access API without prompts (so the remembered folder opens straight into the library — no gate after the first pick), and runs `electron-updater` against GitHub Releases: checks on launch and hourly, downloads quietly, installs on quit, app menu offers **Restart to Update**. Runtime note: `support.js` loads React from unpkg unless `window.__resources` overrides it — the GitHub Pages build still uses the CDN. Run with `ELECTRON_RUN_AS_NODE` unset (VS Code shells set it, which makes Electron behave as plain Node). `desktop/src/preload.js` exposes only `window.dictate` (start / stop / on); `sync` also compiles the Swift dictation helper into `desktop/bin/dictate`, packaged as an extra resource; `DICTATE_BIN=<fake> npm run smoke` exercises the bridge.
 
-## Files in this bundle
-- `Writer.dc.html` — the prototype source (template + logic in one file; references `support.js`).
-- `support.js` — the prototype's small runtime (template binding). Not needed in production.
-- `Writer.html` — single-file bundled build of the prototype; open in Chrome/Edge to try the real behaviour (folder access, print, zip).
-- `DESIGN-NOTES.md` — the running design-decision log from the design sessions.
+## Files
+- `index.html` — the app (template + logic in one file; references `support.js`). Lives at the repo root so GitHub Pages serves it.
+- `support.js` — the small template runtime the page needs.
+- `DESIGN-NOTES.md` — the running design-decision log.
 
 ## Phones and touch
 

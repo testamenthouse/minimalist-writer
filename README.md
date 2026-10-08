@@ -32,15 +32,15 @@ No accounts, no server, no analytics. Everything stays on your machine.
 
 ## Get it
 
-**Mac app (Apple Silicon).** Download the latest `.dmg.zip` from [Releases](../../releases), unzip it, open the DMG, and drag Writer to Applications. The app opens straight into your remembered library.
+**Mac app (Apple Silicon).** Download the latest `.dmg.zip` from [Releases](https://github.com/testamenthouse/minimalist-writer/releases), unzip it, open the DMG, and drag Writer to Applications. The app opens straight into your remembered library.
 
-**Windows app.** Download the latest `.exe` installer from [Releases](../../releases). It installs for the current user with one click. Dictation is Mac only.
+**Windows app.** Download the latest `.exe` installer from [Releases](https://github.com/testamenthouse/minimalist-writer/releases). It installs for the current user with one click. Dictation is Mac only.
 
-**Web version.** Open the published page in Google Chrome:
+**Web version.** Open the app in Google Chrome:
 
 https://testamenthouse.github.io/minimalist-writer/
 
-Chrome is required because the app opens a folder on your disk through the File System Access API. Other browsers show a "Google Chrome required" screen. You can also open `handoff/Writer.html` from a checkout in Chrome. It is the whole app in one file.
+Chrome is required because the app opens a folder on your disk through the File System Access API. Other browsers show a "Google Chrome required" screen. From a checkout, serve the repo folder with any static server and open it in Chrome.
 
 Phones and tablets get a one-column layout but cannot open a folder. Writing happens on a desktop.
 
@@ -139,7 +139,7 @@ Settings are saved to `writer.json` in the library, so they follow the folder.
 
 ## Building the desktop app
 
-The desktop app is an [Electron](https://www.electronjs.org/) shell around `handoff/Writer.dc.html`, built with electron-builder. The prototype file is the only source of the UI. The Mac build targets Apple Silicon. The Windows build is a 64-bit one-click installer.
+The desktop app is an [Electron](https://www.electronjs.org/) shell around the root `index.html`, built with electron-builder. That page is the only source of the UI. The Mac build targets Apple Silicon. The Windows build is a 64-bit one-click installer.
 
 **You need**
 
@@ -156,7 +156,7 @@ npm install
 env -u ELECTRON_RUN_AS_NODE npm start
 ```
 
-`npm start` first runs `npm run sync`, which copies the prototype into `desktop/app` with the Google Fonts link swapped for bundled Inter and React pointed at the vendored copy, so the packaged app is fully offline. On the Mac it also compiles `dictate/dictate.swift` into `bin/dictate`.
+`npm start` first runs `npm run sync`, which copies the page into `desktop/app` with the Google Fonts link swapped for bundled Inter and React pointed at the vendored copy, so the packaged app is fully offline. On the Mac it also compiles `dictate/dictate.swift` into `bin/dictate`.
 
 **Build an installer**
 
@@ -169,14 +169,19 @@ On a Mac this writes `Writer-<version>-mac-arm64.dmg` and wraps it as `Writer-<v
 
 **Publish a release**
 
-Bump `version` in `desktop/package.json`, then push a tag:
+Releases are built and published from your own machine. Nothing runs automatically on GitHub; the workflows under `.github/workflows` are kept for reference and only run when started by hand.
+
+Bump `version` in `desktop/package.json`, then on a Mac:
 
 ```sh
-git tag v0.2.0
-git push origin v0.2.0
+cd desktop
+GH_TOKEN=<github token with repo scope> \
+CSC_LINK=<Developer ID certificate .p12, base64> CSC_KEY_PASSWORD=<its password> \
+APPLE_ID=<apple id> APPLE_APP_SPECIFIC_PASSWORD=<app-specific password> APPLE_TEAM_ID=<team id> \
+npm run release
 ```
 
-The [release workflow](.github/workflows/release.yml) builds on macOS and Windows, signs and notarizes the Mac build, and uploads both to a GitHub release. It needs these repository secrets: `MAC_CERT_P12_BASE64`, `MAC_CERT_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`. Running `npm run release` locally does the same with the same variables in your environment.
+This builds, signs and notarizes the Mac app and uploads the DMG zip to a GitHub release named after the version. Without the signing variables the build still succeeds, but macOS will refuse to open the result on other machines. For the Windows installer run `GH_TOKEN=<token> npm run release` on a Windows machine; it uploads to the same release.
 
 **Updates.** The app checks GitHub Releases on launch and hourly and offers **Restart to Update** when a download is ready. On the Mac, automatic updates need an app zip target that the current build does not produce, so Mac users download the new DMG from Releases until that target is restored. Windows updates work through the installer.
 
@@ -189,23 +194,21 @@ The [release workflow](.github/workflows/release.yml) builds on macOS and Window
 
 ## Running the web version
 
-There is no build step. The [Pages workflow](.github/workflows/pages.yml) publishes `handoff/Writer.dc.html` and `handoff/support.js` on every push to `main`. To run it locally, serve the `handoff` folder with any static server and open `Writer.dc.html` in Chrome, or just open `handoff/Writer.html`, the single-file bundle.
+There is no build step. The app is `index.html` plus `support.js` at the repo root, so GitHub Pages serves it as it is. To run it locally, serve the repo folder with any static server and open it in Chrome.
 
 The web version loads React from a CDN the first time; the desktop app ships it.
 
 ## Repository layout
 
 ```
-handoff/
-  Writer.dc.html     The app. Template and logic in one file; the only source of the UI
-  support.js         The small runtime that binds the template
-  Writer.html        Single-file bundle of the same app for opening directly in Chrome
-  README.md          The full behavior spec: every screen, rule and file-format detail
-  DESIGN-NOTES.md    The design decision log
+index.html           The app. Template and logic in one file; the only source of the UI
+support.js           The small runtime that binds the template
+SPEC.md              The full behavior spec: every screen, rule and file-format detail
+DESIGN-NOTES.md      The design decision log
 desktop/
   src/               Electron main, preload and dictation bridge
   dictate/           The Swift on-device speech helper
   scripts/           sync, build-dictate, zip-dmg
   electron-builder.yml
-.github/workflows/   Pages deploy and tagged releases
+.github/workflows/   Release and Pages workflows, manual-only (nothing runs automatically)
 ```

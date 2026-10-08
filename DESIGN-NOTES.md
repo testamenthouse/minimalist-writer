@@ -1,13 +1,12 @@
-# Minimalist Book Writing App — handoff memory
+# Writer — design notes
 
 ## Files
-- `Writer.dc.html` — the app (source of truth). Edit this.
-- `Writer-standalone-src.html` — generated copy with bundler thumbnail; regenerate, don't hand-edit.
-- `Writer.html` — bundled standalone export for the user (Chrome/Edge). ONLY re-export when the user explicitly asks — never automatically.
+- `index.html` (+ `support.js`) — the app (source of truth). Edit this. Moved from `handoff/Writer.dc.html` to the repo root 2026-10-08 so GitHub Pages serves it directly; the `handoff/` folder and the `Writer.html` single-file bundle were retired the same day.
+- `SPEC.md` — the behaviour spec (formerly `handoff/README.md`). Update it with every change.
 
 ## Hosting + desktop (2026-10-07)
-- GitHub Pages: `.github/workflows/pages.yml` publishes `handoff/Writer.dc.html` as `index.html` + `support.js` (Source = GitHub Actions). Free accounts need a public repo.
-- Electron: `desktop/` (see `desktop/README.md`). Chosen over Tauri because the print pipeline is Blink-tuned (`@page` margin boxes, receipt tuning). Updates via electron-updater + GitHub Releases on `v*` tags (`.github/workflows/release.yml`); macOS updates require a **Developer ID Application** cert + notarization (secrets: MAC_CERT_P12_BASE64, MAC_CERT_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID). No Developer ID certificate is set up yet, only an Apple Development cert. Fill `OWNER` in `desktop/package.json` repository URL (electron-builder derives the publish target from it).
+- GitHub Pages: deploys from the `main` branch as-is (2026-10-08); the root `index.html` is the app. `.github/workflows/pages.yml` (the old Actions deploy) and `release.yml` are manual-only now, nothing runs automatically.
+- Electron: `desktop/` (see `desktop/README.md`). Chosen over Tauri because the print pipeline is Blink-tuned (`@page` margin boxes, receipt tuning). Updates via electron-updater + GitHub Releases on `v*` tags (`.github/workflows/release.yml`); macOS updates require a **Developer ID Application** cert + notarization (secrets: MAC_CERT_P12_BASE64, MAC_CERT_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID). No Developer ID certificate is set up yet, only an Apple Development cert. `desktop/package.json` repository URL points at testamenthouse (electron-builder derives the publish target from it).
 
 ## What it is
 Browser-based book writing app. One main folder = library; each subfolder = a book; each `NN-title.md` inside = a chapter (`# Title` first line, body after). Reads/writes via File System Access API (Chrome/Edge, standalone file); falls back to folder upload + `.md` download where unavailable (incl. inside the preview — "Could not open" there is expected).
@@ -36,9 +35,6 @@ Browser-based book writing app. One main folder = library; each subfolder = a bo
 
 ## Style
 Design: holger1411 minimal-design-system (black/white/neutral greys: #000, #525252, #a3a3a3, #e5e7eb, #f5f5f5; Inter; 6–8px radii; no shadows). All styles inline, but every color is a `var(--token)` defined on `:root` so the dark theme (`:root[data-theme="dark"]`: #1f1f1f / #ececec / #a3a3a3 / #737373 / #333 / #2a2a2a — charcoal, never near-black; #111 was rejected as "SUPER dark") is one block of overrides. **Dark mode** (2026-10-07): Settings → Theme = System · Light · Dark, saved with the other settings in `writer.json`; System tracks `prefers-color-scheme` live; a `<head>` script applies the stored choice before first paint; the Electron window background follows `nativeTheme`. Printing is never themed — paper stays white — and book spine pastels are the same in both themes.
-
-## Export
-Standalone: copy `Writer.dc.html` → inject `<template id="__bundler_thumbnail">` after support.js → `super_inline_html` → `Writer.html` → present for download.
 
 ## Dictation (2026-10-08)
 - User: dictate to write books using the Mac's built-in tools; web version Chrome only, alert elsewhere. Built the same day for Sermon Builder (the Sermon Builder repo) with the same logic.
