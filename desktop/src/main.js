@@ -1,7 +1,8 @@
-const { app, BrowserWindow, Menu, dialog, net, protocol, session, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, nativeTheme, net, protocol, session, shell } = require('electron');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { autoUpdater } = require('electron-updater');
+const dictate = require('./dictate.js');
 
 const SCHEME = 'app';
 const ORIGIN = `${SCHEME}://writer`;
@@ -69,12 +70,14 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+let win = null;
 function createWindow() {
-  const win = new BrowserWindow({
+  win = new BrowserWindow({
     width: 1280, height: 860, minWidth: 720, minHeight: 480,
-    title: 'Writer', backgroundColor: '#ffffff', show: false,
-    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false }
+    title: 'Writer', backgroundColor: nativeTheme.shouldUseDarkColors ? '#1f1f1f' : '#ffffff', show: false,
+    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, preload: path.join(__dirname, 'preload.js') }
   });
+  win.on('closed', () => { win = null; });
   win.once('ready-to-show', () => { if (!SMOKE) win.show(); });
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith(ORIGIN)) { e.preventDefault(); shell.openExternal(url); } });
@@ -90,6 +93,10 @@ function createWindow() {
           font: document.fonts.check('600 20px Inter')
         }))()`);
         console.log('SMOKE ' + JSON.stringify(r));
+        if (process.env.DICTATE_BIN) {
+          const d = await win.webContents.executeJavaScript(`new Promise(res => { const evs = []; window.dictate.on(ev => { evs.push(ev.t + (ev.text ? ':' + ev.text : '')); if (ev.t === 'exit') res(evs); }); window.dictate.start('en-US').then(ok => { if (!ok) res(['start:false']); setTimeout(() => window.dictate.stop(), 1200); }); setTimeout(() => res(evs.concat('timeout')), 6000); })`);
+          console.log('SMOKE dictate ' + JSON.stringify(d));
+        }
       } catch (e) { console.log('SMOKE ERROR ' + e.message); }
       app.exit(0);
     });
@@ -98,7 +105,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  serveApp(); trustApp(); buildMenu(); createWindow();
+  serveApp(); trustApp(); dictate.wire(() => win); buildMenu(); createWindow();
   checkForUpdates(false);
   setInterval(() => checkForUpdates(false), 60 * 60 * 1000);
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

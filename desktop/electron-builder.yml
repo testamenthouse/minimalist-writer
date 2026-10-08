@@ -8,6 +8,9 @@ files:
   - src/**
   - app/**
   - package.json
+extraResources:
+  - from: bin
+    to: bin
 publish:
   provider: github
   releaseType: release
@@ -15,16 +18,18 @@ mac:
   category: public.app-category.productivity
   target:
     - target: dmg
-      arch: [universal]
-    - target: zip
-      arch: [universal]
+      arch: [arm64]
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   notarize: true
+  extendInfo:
+    NSMicrophoneUsageDescription: Dictation listens through the microphone.
+    NSSpeechRecognitionUsageDescription: Dictation turns speech into text on this Mac.
 dmg:
   sign: false
+afterAllArtifactBuild: scripts/zip-dmg.js
 win:
   target:
     - target: nsis

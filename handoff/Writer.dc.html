@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{var s=JSON.parse(localStorage.getItem('writer.lib.v3')),t=s&&s.settings&&s.settings.theme;document.documentElement.dataset.theme=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light'}catch(e){}</script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -11,88 +12,163 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-html,body{margin:0;background:#fff;color:#000;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:#000}a:hover{color:#525252}
+:root{--bg:#fff;--fg:#000;--fg-hover:#262626;--muted:#525252;--faint:#a3a3a3;--line:#e5e7eb;--fill:#f5f5f5;--scrim:rgba(255,255,255,.7);color-scheme:light}
+:root[data-theme="dark"]{--bg:#1f1f1f;--fg:#ececec;--fg-hover:#cfcfcf;--muted:#a3a3a3;--faint:#737373;--line:#333;--fill:#2a2a2a;--scrim:rgba(0,0,0,.6);color-scheme:dark}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--fg)}a:hover{color:var(--muted)}
 [contenteditable]:focus{outline:none}
 ::highlight(wr-find){background:#e5e7eb}
 ::highlight(wr-cur){background:#000;color:#fff}
-[data-ph]:empty:before{content:attr(data-ph);color:#a3a3a3;pointer-events:none}
-
+:root[data-theme="dark"] ::highlight(wr-find){background:#444}
+:root[data-theme="dark"] ::highlight(wr-cur){background:#ececec;color:#1f1f1f}
+[data-ph]:empty:before{content:attr(data-ph);color:var(--faint);pointer-events:none}
+@keyframes wr-pulse{0%,100%{opacity:1}50%{opacity:.25}}
+/* phones (below 760px): one column — the chapter rail is a drawer (top-left list button, scrim closes it), notes cover
+   the screen, the tool strip wraps its find bar, dialogs fit the width. Mobile browsers' dynamic toolbars: dvh. */
+.wr-mbar{display:none}
+@supports (height:100dvh){.wr-vh{height:100dvh!important}.wr-minvh{min-height:100dvh!important}}
+@media (max-width:760px){
+.wr-mbar{display:flex!important}
+.wr-wide{display:none!important}
+.wr-page{padding:24px 16px 96px!important}
+.wr-main{padding:96px 20px 120px!important}
+.wr-h1{font-size:28px!important}
+.wr-rail{position:fixed!important;left:0;top:0;bottom:0;height:auto!important;width:min(300px,86vw);z-index:16;background:var(--bg)}
+.wr-scrim{position:fixed;inset:0;z-index:15;background:var(--scrim)}
+.wr-notes{position:fixed!important;inset:0;height:auto!important;width:auto;z-index:14;border-left:0!important;background:var(--bg)}
+.wr-tools{left:0!important;right:0!important;width:auto!important;height:auto!important;flex-wrap:wrap;gap:2px!important;padding:16px 12px 8px 88px!important;background:var(--bg);pointer-events:none}
+.wr-tools>*{pointer-events:auto}
+.wr-find{order:2;flex:1 1 100%;margin:4px 0 0!important}
+.wr-find input{flex:1;width:auto!important;min-width:0}
+.wr-dlg{min-width:0!important;width:calc(100vw - 32px);max-width:calc(100vw - 32px)!important;box-sizing:border-box}
+.wr-print{flex-wrap:wrap}
+.wr-dict{max-width:calc(100vw - 150px)!important}
+}
 </style>
 </helmet>
 
 <sc-if value="{{ isFull }}" hint-placeholder-val="{{ false }}">
-  <div ref="{{ scrollRef }}" style="position:fixed;inset:0;overflow:auto;background:#fff;z-index:10">
+  <div ref="{{ scrollRef }}" style="position:fixed;inset:0;overflow:auto;background:var(--bg);z-index:10">
     <div style="max-width:672px;margin:0 auto;padding:{{ fullPadTop }} 24px 50vh;box-sizing:border-box">
-      <div ref="{{ editorRef }}" contentEditable="true" suppressContentEditableWarning="{{ true }}" spellCheck="{{ true }}" onInput="{{ onInput }}" onPaste="{{ onPaste }}" style="font-size:18px;line-height:1.75;min-height:30vh;white-space:pre-wrap;overflow-wrap:break-word;caret-color:#000"></div>
+      <div ref="{{ editorRef }}" contentEditable="true" suppressContentEditableWarning="{{ true }}" spellCheck="{{ true }}" onInput="{{ onInput }}" onPaste="{{ onPaste }}" style="font-size:18px;line-height:1.75;min-height:30vh;white-space:pre-wrap;overflow-wrap:break-word;caret-color:var(--fg)"></div>
     </div>
-    <button onClick="{{ exitFull }}" title="Done" style="position:fixed;top:16px;right:20px;display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg></button>
-    <div style="position:fixed;right:20px;bottom:16px;font-size:13px;color:#a3a3a3">{{ chapterWords }}</div>
+    <button onClick="{{ exitFull }}" title="Done" style="position:fixed;top:16px;right:20px;display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--faint);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg></button>
+    <div style="position:fixed;left:20px;bottom:16px;display:flex;gap:2px">
+      <button onClick="{{ toggleTypewriter }}" style="background:none;border:0;padding:4px 8px;font:inherit;font-size:13px;color:{{ typewriterColor }};cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">Typewriter</button>
+      <button onClick="{{ toggleDim }}" style="background:none;border:0;padding:4px 8px;font:inherit;font-size:13px;color:{{ dimColor }};cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">Dim</button>
+      <button onMouseDown="{{ swallow }}" onClick="{{ toggleDictation }}" style="background:none;border:0;padding:4px 8px;font:inherit;font-size:13px;color:{{ dictColor }};cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">Dictate</button>
+    </div>
+    <div style="position:fixed;right:{{ fullWordsRight }};bottom:16px;font-size:13px;color:var(--faint);transition:right .15s">{{ chapterWords }}</div>
   </div>
 </sc-if>
 
-<sc-if value="{{ looseAlert }}" hint-placeholder-val="{{ false }}">
-  <div onClick="{{ closeAlert }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7)">
-    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:20px;padding:24px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;font-size:14px;min-width:280px;max-width:360px">
-      <div style="font-size:15px;font-weight:600;line-height:1.4">This folder should only contain subfolders.</div>
+<sc-if value="{{ alertOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeAlert }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:var(--scrim)">
+    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:20px;padding:24px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:14px;min-width:280px;max-width:360px">
+      <div style="font-size:15px;font-weight:600;line-height:1.4">{{ alertText }}</div>
       <div style="display:flex;justify-content:flex-end;gap:4px">
-        <button onClick="{{ closeAlert }}" style="background:#000;border:0;padding:8px 14px;font:inherit;font-size:14px;color:#fff;cursor:pointer;border-radius:6px" style-hover="background:#525252">OK</button>
+        <button onClick="{{ closeAlert }}" style="background:var(--fg);border:0;padding:8px 14px;font:inherit;font-size:14px;color:var(--bg);cursor:pointer;border-radius:6px" style-hover="background:var(--fg-hover)">OK</button>
       </div>
     </div>
   </div>
 </sc-if>
 <sc-if value="{{ confirmDelete }}" hint-placeholder-val="{{ false }}">
-  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7)">
-    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:20px;padding:24px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;font-size:14px;min-width:280px;max-width:360px">
+  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:var(--scrim)">
+    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:20px;padding:24px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:14px;min-width:280px;max-width:360px">
       <div style="font-size:15px;font-weight:600;line-height:1.4">Delete “{{ deleteTitle }}”?</div>
       <div style="display:flex;justify-content:flex-end;gap:4px">
-        <button onClick="{{ closeMenus }}" style="background:none;border:0;padding:8px 14px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">Cancel</button>
-        <button onClick="{{ confirmDeleteAction }}" style="background:#000;border:0;padding:8px 14px;font:inherit;font-size:14px;color:#fff;cursor:pointer;border-radius:6px" style-hover="background:#525252">Delete</button>
+        <button onClick="{{ closeMenus }}" style="background:none;border:0;padding:8px 14px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">Cancel</button>
+        <button onClick="{{ confirmDeleteAction }}" style="background:var(--fg);border:0;padding:8px 14px;font:inherit;font-size:14px;color:var(--bg);cursor:pointer;border-radius:6px" style-hover="background:var(--fg-hover)">Delete</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ tplPickOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:var(--scrim)">
+    <div class="wr-dlg" onClick="{{ closeTplDrop }}" style="display:flex;flex-direction:column;gap:20px;padding:24px;min-width:360px;max-width:420px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:14px">
+      <div style="font-size:15px;font-weight:600;line-height:1.4">New chapter</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px">
+        <span style="color:var(--muted)">Select template</span>
+        <div style="position:relative;display:flex;width:200px;flex:none">
+          <button onClick="{{ toggleTplDrop }}" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:1px solid {{ tplDropBorder }};padding:6px 10px;font:inherit;font-size:14px;color:var(--fg);cursor:pointer;border-radius:6px;text-align:left" style-hover="border-color:var(--fg)"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ tplChoiceLabel }}</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="color:var(--faint);flex:none"><path d="M6 9l6 6 6-6"></path></svg></button>
+          <sc-if value="{{ tplDropOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:100%;left:0;right:0;margin-top:4px;z-index:2;display:flex;flex-direction:column;gap:2px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);max-height:280px;overflow:auto">
+              <sc-for list="{{ tplOptions }}" as="o" hint-placeholder-count="3">
+                <button onClick="{{ o.pick }}" style="display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;padding:8px 12px;font:inherit;font-size:14px;cursor:pointer;border-radius:6px;text-align:left;background:{{ o.bg }};color:{{ o.color }}" style-hover="color:var(--fg);background:var(--fill)">{{ o.label }}</button>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:4px">
+        <button onClick="{{ closeMenus }}" style="background:none;border:0;padding:8px 14px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">Cancel</button>
+        <button onClick="{{ createChapter }}" style="background:var(--fg);color:var(--bg);border:0;padding:8px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:var(--fg-hover)">Create</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+<sc-if value="{{ tplSaveOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:var(--scrim)">
+    <div class="wr-dlg" onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:16px;padding:20px;min-width:360px;max-width:420px;border:1px solid var(--line);border-radius:8px;background:var(--bg)">
+      <input ref="{{ tplRef }}" value="{{ tplName }}" onChange="{{ onTplNameChange }}" onKeyDown="{{ onTplNameKey }}" placeholder="Template name" style="width:100%;box-sizing:border-box;font:inherit;font-size:20px;font-weight:600;letter-spacing:-0.01em;border:0;border-bottom:1px solid var(--fg);padding:4px 0;outline:none;background:none;min-width:0;color:var(--fg)">
+      <div style="display:flex;justify-content:flex-end;gap:4px">
+        <button onClick="{{ closeMenus }}" style="background:none;border:0;padding:8px 14px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">Cancel</button>
+        <button onClick="{{ saveTemplate }}" style="background:var(--fg);color:var(--bg);border:0;padding:8px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:var(--fg-hover)">Save template</button>
       </div>
     </div>
   </div>
 </sc-if>
 
 <sc-if value="{{ printMenu }}" hint-placeholder-val="{{ false }}">
-  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7)">
-    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:20px;padding:24px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;font-size:14px">
-      <div style="color:#525252;font-size:13px;text-align:center;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;align-self:center">{{ printScopeLabel }}</div>
-      <div style="display:flex;gap:16px;align-items:stretch">
-        <button onClick="{{ printReceipt }}" style="display:flex;flex-direction:column;align-items:center;gap:12px;background:none;border:1px solid #e5e7eb;padding:20px 24px 14px;font:inherit;font-size:13px;color:#525252;cursor:pointer;border-radius:8px;width:150px;box-sizing:border-box" style-hover="border-color:#000;color:#000">
+  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:var(--scrim)">
+    <div class="wr-dlg" onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:20px;padding:24px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:14px">
+      <div style="color:var(--muted);font-size:13px;text-align:center;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;align-self:center">{{ printScopeLabel }}</div>
+      <div class="wr-print" style="display:flex;gap:16px;align-items:stretch">
+        <button onClick="{{ printReceipt }}" style="display:flex;flex-direction:column;align-items:center;gap:12px;background:none;border:1px solid var(--line);padding:20px 24px 14px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;border-radius:8px;width:150px;box-sizing:border-box" style-hover="border-color:var(--fg);color:var(--fg)">
           <span style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1">
-            <span style="display:flex;flex-direction:column;gap:5px;width:36px;height:92px;padding:9px 6px;box-sizing:border-box;border:1px solid #a3a3a3;border-bottom:0;background:#fff;clip-path:polygon(0 0,100% 0,100% calc(100% - 4px),91% 100%,82% calc(100% - 4px),73% 100%,64% calc(100% - 4px),55% 100%,46% calc(100% - 4px),37% 100%,28% calc(100% - 4px),19% 100%,10% calc(100% - 4px),0 100%)">
-              <span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:80%"></span><span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:65%"></span><span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:90%"></span><span style="height:1px;background:#a3a3a3;width:50%"></span>
+            <span style="display:flex;flex-direction:column;gap:5px;width:36px;height:92px;padding:9px 6px;box-sizing:border-box;border:1px solid var(--faint);border-bottom:0;background:var(--bg);clip-path:polygon(0 0,100% 0,100% calc(100% - 4px),91% 100%,82% calc(100% - 4px),73% 100%,64% calc(100% - 4px),55% 100%,46% calc(100% - 4px),37% 100%,28% calc(100% - 4px),19% 100%,10% calc(100% - 4px),0 100%)">
+              <span style="height:1px;background:var(--faint);width:100%"></span><span style="height:1px;background:var(--faint);width:80%"></span><span style="height:1px;background:var(--faint);width:100%"></span><span style="height:1px;background:var(--faint);width:65%"></span><span style="height:1px;background:var(--faint);width:100%"></span><span style="height:1px;background:var(--faint);width:90%"></span><span style="height:1px;background:var(--faint);width:50%"></span>
             </span>
           </span>
           <span>Receipt</span>
         </button>
-        <button onClick="{{ printPaper }}" style="display:flex;flex-direction:column;align-items:center;gap:12px;background:none;border:1px solid #e5e7eb;padding:20px 24px 14px;font:inherit;font-size:13px;color:#525252;cursor:pointer;border-radius:8px;width:150px;box-sizing:border-box" style-hover="border-color:#000;color:#000">
+        <button onClick="{{ printPaper }}" style="display:flex;flex-direction:column;align-items:center;gap:12px;background:none;border:1px solid var(--line);padding:20px 24px 14px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;border-radius:8px;width:150px;box-sizing:border-box" style-hover="border-color:var(--fg);color:var(--fg)">
           <span style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1">
-            <span style="display:flex;flex-direction:column;gap:5px;width:70px;height:92px;padding:12px 10px;box-sizing:border-box;border:1px solid #a3a3a3;background:#fff">
-              <span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:85%"></span><span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:60%"></span>
+            <span style="display:flex;flex-direction:column;gap:5px;width:70px;height:92px;padding:12px 10px;box-sizing:border-box;border:1px solid var(--faint);background:var(--bg)">
+              <span style="height:1px;background:var(--faint);width:100%"></span><span style="height:1px;background:var(--faint);width:100%"></span><span style="height:1px;background:var(--faint);width:85%"></span><span style="height:1px;background:var(--faint);width:100%"></span><span style="height:1px;background:var(--faint);width:100%"></span><span style="height:1px;background:var(--faint);width:60%"></span>
             </span>
           </span>
           <span>Letter</span>
         </button>
       </div>
-      <button onClick="{{ togglePageNums }}" style="display:flex;align-items:center;gap:8px;align-self:center;background:none;border:0;padding:4px 8px;font:inherit;font-size:13px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">
-        <span style="display:flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid #525252;border-radius:3px;background:{{ pageNumsBg }};color:#fff;flex:none"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span>
-        <span>Page numbers</span>
-      </button>
+      <div class="wr-print" style="display:flex;gap:16px">
+        <div style="display:flex;justify-content:center;gap:2px;width:150px">
+          <sc-for list="{{ rollOpts }}" as="o" hint-placeholder-count="2">
+            <button onClick="{{ o.pick }}" style="background:{{ o.bg }};color:{{ o.color }};border:0;padding:4px 10px;font:inherit;font-size:13px;cursor:pointer;border-radius:6px" style-hover="background:var(--fill)">{{ o.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:flex;justify-content:center;width:150px">
+          <button onClick="{{ togglePageNums }}" style="display:flex;align-items:center;gap:8px;background:none;border:0;padding:4px 8px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">
+            <span style="display:flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid var(--muted);border-radius:3px;background:{{ pageNumsBg }};color:var(--bg);flex:none"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span>
+            <span>Page numbers</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </sc-if>
 
 <sc-if value="{{ renaming }}" hint-placeholder-val="{{ false }}">
-  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7)">
-    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:16px;padding:20px;min-width:360px;max-width:420px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
-      <input ref="{{ renameRef }}" value="{{ renameValue }}" onChange="{{ onRenameChange }}" onKeyDown="{{ onRenameKey }}" placeholder="Book name" style="width:100%;box-sizing:border-box;font:inherit;font-size:20px;font-weight:600;letter-spacing:-0.01em;border:0;border-bottom:1px solid #000;padding:4px 0;outline:none;background:none;min-width:0;color:#000">
+  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:var(--scrim)">
+    <div class="wr-dlg" onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:16px;padding:20px;min-width:360px;max-width:420px;border:1px solid var(--line);border-radius:8px;background:var(--bg)">
+      <input ref="{{ renameRef }}" value="{{ renameValue }}" onChange="{{ onRenameChange }}" onKeyDown="{{ onRenameKey }}" placeholder="Book name" style="width:100%;box-sizing:border-box;font:inherit;font-size:20px;font-weight:600;letter-spacing:-0.01em;border:0;border-bottom:1px solid var(--fg);padding:4px 0;outline:none;background:none;min-width:0;color:var(--fg)">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px">
-        <span style="color:#525252">Words</span>
-        <input type="text" inputmode="numeric" value="{{ renameGoal }}" onChange="{{ onGoalChange }}" onKeyDown="{{ onRenameKey }}" style="width:110px;font:inherit;font-size:14px;text-align:right;border:0;border-bottom:1px solid #e5e7eb;padding:4px 0;outline:none;background:none;color:#000">
+        <span style="color:var(--muted)">Words</span>
+        <input type="text" inputmode="numeric" value="{{ renameGoal }}" onChange="{{ onGoalChange }}" onKeyDown="{{ onRenameKey }}" style="width:110px;font:inherit;font-size:14px;text-align:right;border:0;border-bottom:1px solid var(--line);padding:4px 0;outline:none;background:none;color:var(--fg)">
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px">
-        <span style="color:#525252">Color</span>
+        <span style="color:var(--muted)">Color</span>
         <div style="display:flex;gap:6px">
           <sc-for list="{{ colorOpts }}" as="c" hint-placeholder-count="9">
             <button onClick="{{ c.pick }}" style="width:18px;height:18px;border-radius:4px;padding:0;cursor:pointer;background:{{ c.bg }};border:1px solid {{ c.border }};box-sizing:border-box"></button>
@@ -100,68 +176,77 @@ a{color:#000}a:hover{color:#525252}
         </div>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:4px">
-        <button onClick="{{ cancelRename }}" style="background:none;border:0;padding:8px 14px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">Cancel</button>
-        <button onClick="{{ commitRename }}" style="background:#000;color:#fff;border:0;padding:8px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:#262626">Save</button>
+        <button onClick="{{ cancelRename }}" style="background:none;border:0;padding:8px 14px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">Cancel</button>
+        <button onClick="{{ commitRename }}" style="background:var(--fg);color:var(--bg);border:0;padding:8px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:var(--fg-hover)">Save</button>
       </div>
       <sc-if value="{{ renamingExisting }}" hint-placeholder-val="{{ false }}">
-        <div style="padding-top:10px;border-top:1px solid #e5e7eb">
-          <button onClick="{{ askDeleteBook }}" style="display:block;width:100%;background:none;border:0;padding:8px 12px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px;text-align:center" style-hover="color:#000;background:#f5f5f5">Delete book</button>
+        <div style="padding-top:10px;border-top:1px solid var(--line)">
+          <button onClick="{{ askDeleteBook }}" style="display:block;width:100%;background:none;border:0;padding:8px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px;text-align:center" style-hover="color:var(--fg);background:var(--fill)">Delete book</button>
         </div>
       </sc-if>
     </div>
   </div>
 </sc-if>
 <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
-  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7)">
-    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:10px;padding:20px;min-width:360px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px;padding-bottom:10px;margin-bottom:4px;border-bottom:1px solid #e5e7eb">
-        <span style="color:#525252">Folder</span>
+  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:var(--scrim)">
+    <div class="wr-dlg" onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:10px;padding:20px;min-width:360px;border:1px solid var(--line);border-radius:8px;background:var(--bg)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px;padding-bottom:10px;margin-bottom:4px;border-bottom:1px solid var(--line)">
+        <span style="color:var(--muted)">Folder</span>
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="color:#000;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ libName }}</span>
-          <button onClick="{{ open }}" style="background:none;border:0;padding:6px 12px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">{{ folderBtn }}</button>
+          <span style="color:var(--fg);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ libName }}</span>
+          <button onClick="{{ open }}" style="background:none;border:0;padding:6px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">{{ folderBtn }}</button>
         </div>
       </div>
       <sc-if value="{{ hasFolder }}" hint-placeholder-val="{{ false }}">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px;padding-bottom:10px;margin-bottom:4px;border-bottom:1px solid #e5e7eb">
-          <span style="color:#525252">{{ syncLabel }}</span>
-          <button onClick="{{ sync }}" style="background:none;border:0;padding:6px 12px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">Sync</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px;padding-bottom:10px;margin-bottom:4px;border-bottom:1px solid var(--line)">
+          <span style="color:var(--muted)">{{ syncLabel }}</span>
+          <button onClick="{{ sync }}" style="background:none;border:0;padding:6px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">Sync</button>
         </div>
       </sc-if>
-      <sc-for list="{{ settingRows }}" as="row" hint-placeholder-count="5">
+      <sc-for list="{{ settingRows }}" as="row" hint-placeholder-count="2">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px">
-          <span style="color:#525252">{{ row.label }}</span>
+          <span style="color:var(--muted)">{{ row.label }}</span>
           <div style="display:flex;gap:2px">
             <sc-for list="{{ row.options }}" as="o" hint-placeholder-count="3">
-              <button onClick="{{ o.pick }}" style="background:{{ o.bg }};color:{{ o.color }};border:0;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer;border-radius:6px" style-hover="background:#f5f5f5">{{ o.label }}</button>
+              <button onClick="{{ o.pick }}" style="background:{{ o.bg }};color:{{ o.color }};border:0;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer;border-radius:6px" style-hover="background:var(--fill)">{{ o.label }}</button>
             </sc-for>
           </div>
         </div>
       </sc-for>
-      <div style="padding-top:10px;margin-top:4px;border-top:1px solid #e5e7eb">
-        <button onClick="{{ logOut }}" style="display:block;width:100%;background:none;border:0;padding:8px 12px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px;text-align:center" style-hover="color:#000;background:#f5f5f5">Log out</button>
+      <div style="padding-top:10px;margin-top:4px;border-top:1px solid var(--line)">
+        <button onClick="{{ logOut }}" style="display:block;width:100%;background:none;border:0;padding:8px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px;text-align:center" style-hover="color:var(--fg);background:var(--fill)">Log out</button>
       </div>
     </div>
   </div>
 </sc-if>
 
+<sc-if value="{{ blocked }}" hint-placeholder-val="{{ false }}">
+  <div class="wr-minvh" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px;box-sizing:border-box">
+    <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em;color:var(--fg);text-align:center;margin-bottom:6px">Writer</div>
+    <a href="https://www.google.com/chrome/" style="display:inline-block;background:var(--fg);color:var(--bg);text-decoration:none;padding:10px 18px;font:inherit;font-size:14px;font-weight:500;border-radius:6px" style-hover="background:var(--fg-hover)">Get Google Chrome</a>
+    <div style="font-size:13px;color:var(--faint);min-height:16px">Google Chrome required</div>
+  </div>
+</sc-if>
+
 <sc-if value="{{ gated }}" hint-placeholder-val="{{ false }}">
-  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px;box-sizing:border-box">
-    <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em;color:#000;text-align:center;margin-bottom:6px">Start Private Writing Session</div>
-    <button onClick="{{ gateAction }}" style="background:#000;color:#fff;border:0;padding:10px 18px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:#262626">{{ gateLabel }}</button>
+  <div class="wr-minvh" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px;box-sizing:border-box">
+    <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em;color:var(--fg);text-align:center;margin-bottom:6px">Start Writing</div>
+    <button onClick="{{ gateAction }}" style="background:var(--fg);color:var(--bg);border:0;padding:10px 18px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:var(--fg-hover)">{{ gateLabel }}</button>
     <sc-if value="{{ resumable }}" hint-placeholder-val="{{ false }}">
-      <button onClick="{{ open }}" style="background:none;border:0;padding:6px 12px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">Open folder</button>
+      <button onClick="{{ open }}" style="background:none;border:0;padding:6px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">Open folder</button>
     </sc-if>
-    <div style="font-size:13px;color:#a3a3a3;min-height:16px">{{ status }}</div>
+    <div style="font-size:13px;color:var(--faint);min-height:16px">{{ status }}</div>
   </div>
 </sc-if>
 
 <sc-if value="{{ showShelf }}" hint-placeholder-val="{{ true }}">
-  <div style="max-width:720px;margin:0 auto;padding:40px 32px 128px;display:flex;flex-direction:column;gap:48px">
+  <div class="wr-page" style="max-width:720px;margin:0 auto;padding:40px 32px 128px;display:flex;flex-direction:column;gap:48px">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 -10px">
-      <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em;color:#000;padding:0 10px;min-width:0;overflow-wrap:anywhere">{{ libName }}</div>
+      <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em;color:var(--fg);padding:0 10px;min-width:0;overflow-wrap:anywhere">{{ libName }}</div>
       <div style="display:flex;gap:2px;flex:none">
-      <button onClick="{{ newBook }}" title="New book" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
-      <button onClick="{{ openSettings }}" title="Settings" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
+      <button onClick="{{ newBook }}" title="New book" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
+      <button onClick="{{ openTemplates }}" title="Templates" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"></path><path d="M3 13l9 5 9-5"></path></svg></button>
+      <button onClick="{{ openSettings }}" title="Settings" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:32px">
@@ -169,120 +254,310 @@ a{color:#000}a:hover{color:#525252}
         <sc-for list="{{ books }}" as="b" hint-placeholder-count="3">
           <button onClick="{{ b.open }}" onDoubleClick="{{ b.rename }}" title="Double-click to rename" style="display:flex;flex-direction:column;gap:12px;background:none;border:0;text-align:left;padding:0;font:inherit;cursor:pointer">
             <span style="position:relative;display:block;width:100%;aspect-ratio:2/3;box-sizing:border-box;padding-right:5px;padding-bottom:5px">
-              <span style="position:absolute;right:0;bottom:0;left:5px;top:5px;border:1px solid #e5e7eb;border-radius:1px 3px 3px 1px;background:#fff;box-sizing:border-box"></span>
-              <span style="position:absolute;right:2px;bottom:2px;left:3px;top:3px;border:1px solid #e5e7eb;border-radius:1px 3px 3px 1px;background:#fff;box-sizing:border-box"></span>
-              <span style="position:relative;display:flex;width:100%;height:100%;border:1px solid #525252;border-radius:2px 5px 5px 2px;background:#fff;box-sizing:border-box;overflow:hidden;transition:border-color .2s,transform .25s cubic-bezier(.2,.7,.2,1)" style-hover="border-color:#000;transform:translate(-3px,-3px)">
-                <span style="width:14px;flex:none;border-right:1px solid #e5e7eb;background:{{ b.spine }}"></span>
+              <span style="position:absolute;right:0;bottom:0;left:5px;top:5px;border:1px solid var(--line);border-radius:1px 3px 3px 1px;background:var(--bg);box-sizing:border-box"></span>
+              <span style="position:absolute;right:2px;bottom:2px;left:3px;top:3px;border:1px solid var(--line);border-radius:1px 3px 3px 1px;background:var(--bg);box-sizing:border-box"></span>
+              <span style="position:relative;display:flex;width:100%;height:100%;border:1px solid var(--muted);border-radius:2px 5px 5px 2px;background:var(--bg);box-sizing:border-box;overflow:hidden;transition:border-color .2s,transform .25s cubic-bezier(.2,.7,.2,1)" style-hover="border-color:var(--fg);transform:translate(-3px,-3px)">
+                <span style="width:14px;flex:none;border-right:1px solid var(--line);background:{{ b.spine }}"></span>
                 <span style="flex:1;display:flex;align-items:flex-start;padding:22px 16px 16px 16px;font-family:{{ contentFont }};font-size:15px;font-weight:600;letter-spacing:-0.01em;line-height:1.3;overflow-wrap:break-word;min-width:0">{{ b.name }}</span>
               </span>
             </span>
-            <span style="font-size:12px;color:#a3a3a3;padding-left:2px">{{ b.meta }}</span>
+            <span style="font-size:12px;color:var(--faint);padding-left:2px">{{ b.meta }}</span>
           </button>
         </sc-for>
       </div>
       <sc-if value="{{ emptyShelf }}" hint-placeholder-val="{{ false }}">
         <div style="display:flex;justify-content:center;padding:48px 0">
-          <button onClick="{{ newBook }}" style="background:#000;color:#fff;border:0;padding:10px 18px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:#262626">New book</button>
+          <button onClick="{{ newBook }}" style="background:var(--fg);color:var(--bg);border:0;padding:10px 18px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:var(--fg-hover)">New book</button>
         </div>
       </sc-if>
     </div>
-    <div style="font-size:13px;color:#a3a3a3;min-height:16px">{{ status }}</div>
+    <div style="font-size:13px;color:var(--faint);min-height:16px">{{ status }}</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showTemplates }}" hint-placeholder-val="{{ false }}">
+  <div class="wr-page" style="max-width:720px;margin:0 auto;padding:40px 32px 128px;display:flex;flex-direction:column;gap:48px">
+    <div style="display:flex;align-items:center;gap:2px;margin:0 -10px">
+      <button onClick="{{ backFromTemplates }}" title="Books" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px;flex:none" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg></button>
+      <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em;color:var(--fg);padding:0 10px;min-width:0;flex:1">Templates</div>
+      <button onClick="{{ newTemplate }}" title="New template" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px;flex:none" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
+      <button onClick="{{ openSettings }}" title="Settings" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px;flex:none" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px;margin:0 -10px">
+      <sc-for list="{{ tplList }}" as="t" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:2px">
+          <div onClick="{{ t.open }}" style="flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1.4;color:var(--muted)" style-hover="color:var(--fg);background:var(--fill)">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">{{ t.name }}</span>
+            <span style="font-size:11px;color:var(--faint)">{{ t.words }}</span>
+          </div>
+          <button onClick="{{ t.del }}" title="Delete template" style="display:flex;align-items:center;flex:none;background:none;border:0;padding:6px 8px;font:inherit;color:var(--faint);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button>
+        </div>
+      </sc-for>
+      <sc-if value="{{ emptyTemplates }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;justify-content:center;padding:48px 0">
+          <button onClick="{{ newTemplate }}" style="background:var(--fg);color:var(--bg);border:0;padding:10px 18px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:var(--fg-hover)">New template</button>
+        </div>
+      </sc-if>
+    </div>
+    <div style="font-size:13px;color:var(--faint);min-height:16px">{{ status }}</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showTplEdit }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh">
+    <button onClick="{{ backToTemplates }}" title="Templates" style="position:fixed;top:16px;left:20px;z-index:6;display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--faint);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg></button>
+    <div class="wr-tools" onMouseEnter="{{ hoverToolsOn }}" onMouseLeave="{{ hoverToolsOff }}" style="position:fixed;top:0;right:0;width:200px;height:72px;z-index:5;display:flex;justify-content:flex-end;align-items:flex-start;gap:4px;padding:16px 20px 0 0;box-sizing:border-box;opacity:{{ toolsOpacity }};transition:opacity .4s">
+      <button onClick="{{ deleteCurrentTemplate }}" title="Delete template" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button>
+    </div>
+    <main class="wr-main" style="position:relative;padding:96px 48px 160px">
+      <div style="max-width:672px;margin:0 auto">
+        <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:0 0 12px">Template</div>
+        <h1 class="wr-h1" ref="{{ titleRef }}" contentEditable="true" suppressContentEditableWarning="{{ true }}" onBlur="{{ onTitleBlur }}" onKeyDown="{{ onTitleKey }}" data-ph="Template name" style="font-size:36px;font-weight:700;letter-spacing:-0.02em;line-height:1.15;margin:0 0 40px"></h1>
+        <div ref="{{ editorRef }}" contentEditable="true" suppressContentEditableWarning="{{ true }}" spellCheck="{{ true }}" onInput="{{ onInput }}" onPaste="{{ onPaste }}" style="font-size:18px;line-height:1.75;min-height:50vh;white-space:pre-wrap;overflow-wrap:break-word;caret-color:var(--fg)"></div>
+      </div>
+    </main>
+    <div style="position:fixed;right:20px;bottom:16px;font-size:13px;color:var(--faint)">{{ tplWords }}</div>
   </div>
 </sc-if>
 
 <sc-if value="{{ showBook }}" hint-placeholder-val="{{ false }}">
-  <div style="display:grid;grid-template-columns:{{ gridCols }};min-height:100vh">
+  <sc-if value="{{ mobileBar }}" hint-placeholder-val="{{ false }}">
+    <div class="wr-mbar" style="position:fixed;top:16px;left:12px;z-index:6;display:flex;gap:2px">
+      <button onClick="{{ backToShelf }}" title="Books" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg></button>
+      <button onClick="{{ openDrawer }}" title="Chapters" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg></button>
+    </div>
+  </sc-if>
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="wr-scrim" onClick="{{ closeDrawer }}"></div>
+  </sc-if>
+  <div class="wr-minvh" style="display:grid;grid-template-columns:{{ gridCols }};min-height:100vh">
     <sc-if value="{{ railCollapsed }}" hint-placeholder-val="{{ false }}">
-    <aside style="border-right:1px solid #e5e7eb;padding:24px 8px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;position:sticky;top:0;height:100vh;box-sizing:border-box">
+    <aside class="wr-vh" style="border-right:1px solid var(--line);padding:24px 8px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;position:sticky;top:0;height:100vh;box-sizing:border-box">
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;overflow:auto;min-height:0;width:100%">
         <sc-for list="{{ chapters }}" as="ch" hint-placeholder-count="4">
-          <div draggable="true" onDragStart="{{ ch.onDragStart }}" onDragOver="{{ ch.onDragOver }}" onDrop="{{ ch.onDrop }}" onClick="{{ ch.open }}" title="{{ ch.title }}" style="display:flex;align-items:center;justify-content:center;width:32px;height:28px;border-radius:6px;cursor:pointer;font-size:11px;font-variant-numeric:tabular-nums;color:{{ ch.color }};background:{{ ch.bg }};font-weight:{{ ch.weight }}" style-hover="background:#f5f5f5">{{ ch.num }}</div>
+          <div draggable="true" onDragStart="{{ ch.onDragStart }}" onDragOver="{{ ch.onDragOver }}" onDrop="{{ ch.onDrop }}" onClick="{{ ch.open }}" title="{{ ch.title }}" style="display:flex;align-items:center;justify-content:center;width:32px;height:28px;border-radius:6px;cursor:pointer;font-size:11px;font-variant-numeric:tabular-nums;color:{{ ch.color }};background:{{ ch.bg }};font-weight:{{ ch.weight }}" style-hover="background:var(--fill)">{{ ch.num }}</div>
         </sc-for>
-        <button onClick="{{ newChapter }}" title="New chapter" style="display:flex;align-items:center;justify-content:center;width:32px;height:28px;background:none;border:0;padding:0;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
+        <button onClick="{{ newChapter }}" title="New chapter" style="display:flex;align-items:center;justify-content:center;width:32px;height:28px;background:none;border:0;padding:0;font:inherit;color:var(--faint);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
       </div>
-      <button onClick="{{ openSettings }}" title="Settings" style="display:flex;align-items:center;justify-content:center;width:32px;height:28px;flex:none;background:none;border:0;padding:0;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
-      <button onClick="{{ toggleRail }}" title="Expand" style="display:flex;align-items:center;flex:none;background:none;border:0;padding:6px 6px;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button>
+      <button onClick="{{ openSettings }}" title="Settings" style="display:flex;align-items:center;justify-content:center;width:32px;height:28px;flex:none;background:none;border:0;padding:0;font:inherit;color:var(--faint);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
+      <button onClick="{{ toggleRail }}" title="Expand" style="display:flex;align-items:center;flex:none;background:none;border:0;padding:6px 6px;font:inherit;color:var(--faint);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button>
     </aside>
     </sc-if>
     <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}">
-    <aside style="border-right:1px solid #e5e7eb;padding:24px 14px 20px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:100vh;box-sizing:border-box">
+    <aside class="wr-rail wr-vh" style="border-right:1px solid var(--line);padding:24px 14px 20px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:100vh;box-sizing:border-box">
       <div onMouseEnter="{{ hoverTitleOn }}" onMouseLeave="{{ hoverTitleOff }}" style="display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;align-items:center;gap:2px">
-        <button onClick="{{ backToShelf }}" title="Books" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg></button>
+        <button onClick="{{ backToShelf }}" title="Books" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg></button>
         <div style="flex:1"></div>
-        <button onClick="{{ newChapter }}" title="New chapter" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
-        <button onClick="{{ printBook }}" title="Print book" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg></button>
-        <button onClick="{{ downloadBook }}" title="Download book (.zip)" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg></button>
-        <button onClick="{{ openBookSettings }}" title="Book" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
+        <button onClick="{{ newChapter }}" title="New chapter" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
+        <button onClick="{{ printBook }}" title="Print book" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg></button>
+        <button onClick="{{ downloadBook }}" title="Download book (.zip)" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg></button>
+        <button onClick="{{ openBookSettings }}" title="Book" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
       </div>
       <div style="font-size:15px;font-weight:600;line-height:1.4;overflow-wrap:anywhere;padding:0 10px">{{ bookTitle }}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:2px;flex:1;overflow:auto;min-height:0">
         <sc-for list="{{ chapters }}" as="ch" hint-placeholder-count="4">
-          <div draggable="true" onDragStart="{{ ch.onDragStart }}" onDragOver="{{ ch.onDragOver }}" onDrop="{{ ch.onDrop }}" onClick="{{ ch.open }}" style="display:flex;align-items:baseline;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1.4;color:{{ ch.color }};background:{{ ch.bg }};font-weight:{{ ch.weight }}" style-hover="background:#f5f5f5">
-            <span style="font-size:11px;color:#a3a3a3;min-width:16px">{{ ch.num }}</span>
+          <div draggable="true" onDragStart="{{ ch.onDragStart }}" onDragOver="{{ ch.onDragOver }}" onDrop="{{ ch.onDrop }}" onClick="{{ ch.open }}" style="display:flex;align-items:baseline;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1.4;color:{{ ch.color }};background:{{ ch.bg }};font-weight:{{ ch.weight }}" style-hover="background:var(--fill)">
+            <span style="font-size:11px;color:var(--faint);min-width:16px">{{ ch.num }}</span>
             <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">{{ ch.title }}</span>
-            <span style="font-size:11px;color:#a3a3a3">{{ ch.words }}</span>
+            <span style="font-size:11px;color:var(--faint)">{{ ch.words }}</span>
           </div>
         </sc-for>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <button onClick="{{ openSettings }}" style="display:flex;align-items:center;gap:8px;flex:none;background:none;border:0;padding:6px 10px;font:inherit;font-size:13px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg><span>Settings</span></button>
-        <div style="flex:1;font-size:12px;color:#a3a3a3;padding:0 10px;min-height:16px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ status }}</div>
-        <button onClick="{{ toggleRail }}" title="Collapse" style="display:flex;align-items:center;flex:none;background:none;border:0;padding:6px 6px;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></button>
+        <button onClick="{{ openSettings }}" style="display:flex;align-items:center;gap:8px;flex:none;background:none;border:0;padding:6px 10px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg><span>Settings</span></button>
+        <div style="flex:1;font-size:12px;color:var(--faint);padding:0 10px;min-height:16px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ status }}</div>
+        <button class="wr-wide" onClick="{{ toggleRail }}" title="Collapse" style="display:flex;align-items:center;flex:none;background:none;border:0;padding:6px 6px;font:inherit;color:var(--faint);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></button>
       </div>
     </aside>
     </sc-if>
-    <main style="position:relative;padding:96px 48px 160px">
+    <main class="wr-main" style="position:relative;padding:96px 48px 160px">
       <div style="max-width:672px;margin:0 auto">
-        <sc-if value="{{ railCollapsed }}" hint-placeholder-val="{{ false }}">
-          <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#a3a3a3;margin:0 0 12px">{{ bookTitle }}</div>
+        <sc-if value="{{ eyebrow }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:0 0 12px">{{ bookTitle }}</div>
         </sc-if>
-        <div onMouseEnter="{{ hoverToolsOn }}" onMouseLeave="{{ hoverToolsOff }}" style="position:fixed;top:0;left:{{ railWidth }};right:{{ notesWidth }};height:72px;z-index:5;display:flex;justify-content:flex-end;align-items:flex-start;gap:4px;padding:16px 20px 0 0;box-sizing:border-box;opacity:{{ toolsOpacity }};transition:opacity .4s">
+        <div class="wr-tools" onMouseEnter="{{ hoverToolsOn }}" onMouseLeave="{{ hoverToolsOff }}" style="position:fixed;top:0;left:{{ railWidth }};right:{{ notesWidth }};height:72px;z-index:5;display:flex;justify-content:flex-end;align-items:flex-start;gap:4px;padding:16px 20px 0 0;box-sizing:border-box;opacity:{{ toolsOpacity }};transition:opacity .4s">
           <sc-if value="{{ findOpen }}" hint-placeholder-val="{{ false }}">
-            <div style="display:flex;align-items:center;gap:2px;height:28px;padding:0 4px 0 10px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;margin-right:4px">
-              <input ref="{{ findRef }}" value="{{ find }}" onChange="{{ onFindChange }}" onKeyDown="{{ onFindKey }}" placeholder="Find" spellCheck="{{ false }}" style="border:0;outline:none;font:inherit;font-size:13px;width:160px;background:none;color:#000;padding:0"></input>
-              <span style="font-size:12px;color:#a3a3a3;min-width:36px;text-align:right;font-variant-numeric:tabular-nums">{{ findLabel }}</span>
-              <button onClick="{{ findPrev }}" title="Previous" style="display:flex;align-items:center;background:none;border:0;padding:4px;font:inherit;color:#525252;cursor:pointer;border-radius:4px" style-hover="color:#000;background:#f5f5f5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"></path></svg></button>
-              <button onClick="{{ findNext }}" title="Next" style="display:flex;align-items:center;background:none;border:0;padding:4px;font:inherit;color:#525252;cursor:pointer;border-radius:4px" style-hover="color:#000;background:#f5f5f5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+            <div class="wr-find" style="display:flex;align-items:center;gap:2px;height:28px;padding:0 4px 0 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);margin-right:4px">
+              <input ref="{{ findRef }}" value="{{ find }}" onChange="{{ onFindChange }}" onKeyDown="{{ onFindKey }}" placeholder="Find" spellCheck="{{ false }}" style="border:0;outline:none;font:inherit;font-size:13px;width:160px;background:none;color:var(--fg);padding:0"></input>
+              <span style="font-size:12px;color:var(--faint);min-width:36px;text-align:right;font-variant-numeric:tabular-nums">{{ findLabel }}</span>
+              <button onClick="{{ findPrev }}" title="Previous" style="display:flex;align-items:center;background:none;border:0;padding:4px;font:inherit;color:var(--muted);cursor:pointer;border-radius:4px" style-hover="color:var(--fg);background:var(--fill)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"></path></svg></button>
+              <button onClick="{{ findNext }}" title="Next" style="display:flex;align-items:center;background:none;border:0;padding:4px;font:inherit;color:var(--muted);cursor:pointer;border-radius:4px" style-hover="color:var(--fg);background:var(--fill)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
             </div>
           </sc-if>
-          <button onClick="{{ toggleFind }}" title="Find" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:{{ findIconColor }};cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.5-4.5"></path></svg></button>
-          <button onClick="{{ enterFull }}" title="Write" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5"></path><path d="M16 3h5v5"></path><path d="M8 21H3v-5"></path><path d="M16 21h5v-5"></path></svg></button>
-          <button onClick="{{ printChapter }}" title="Print chapter" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg></button>
-          <button onClick="{{ downloadChapter }}" title="Download chapter" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg></button>
-          <button onClick="{{ toggleNotes }}" title="Notes" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:{{ notesIconColor }};cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg></button>
-          <button onClick="{{ askDelete }}" title="Delete chapter" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button>
+          <button onClick="{{ toggleFind }}" title="Find" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:{{ findIconColor }};cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.5-4.5"></path></svg></button>
+          <button onClick="{{ enterFull }}" title="Write" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5"></path><path d="M16 3h5v5"></path><path d="M8 21H3v-5"></path><path d="M16 21h5v-5"></path></svg></button>
+          <button onMouseDown="{{ swallow }}" onClick="{{ toggleDictation }}" title="Dictate" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:{{ dictIconColor }};background:{{ dictIconBg }};cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><path d="M12 19v3"></path></svg></button>
+          <button onClick="{{ printChapter }}" title="Print chapter" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg></button>
+          <button onClick="{{ downloadChapter }}" title="Download chapter" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg></button>
+          <button onClick="{{ openTplSave }}" title="Save as template" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"></path><path d="M3 13l9 5 9-5"></path></svg></button>
+          <button onClick="{{ toggleNotes }}" title="Notes" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:{{ notesIconColor }};cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg></button>
+          <button onClick="{{ askDelete }}" title="Delete chapter" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:var(--muted);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button>
         </div>
-        <h1 ref="{{ titleRef }}" contentEditable="true" suppressContentEditableWarning="{{ true }}" onBlur="{{ onTitleBlur }}" onKeyDown="{{ onTitleKey }}" data-ph="Chapter title" style="font-size:36px;font-weight:700;letter-spacing:-0.02em;line-height:1.15;margin:0 0 40px"></h1>
-        <div ref="{{ editorRef }}" contentEditable="true" suppressContentEditableWarning="{{ true }}" spellCheck="{{ true }}" onInput="{{ onInput }}" onPaste="{{ onPaste }}" style="font-size:18px;line-height:1.75;min-height:50vh;white-space:pre-wrap;overflow-wrap:break-word;caret-color:#000"></div>
+        <h1 class="wr-h1" ref="{{ titleRef }}" contentEditable="true" suppressContentEditableWarning="{{ true }}" onBlur="{{ onTitleBlur }}" onKeyDown="{{ onTitleKey }}" data-ph="Chapter title" style="font-size:36px;font-weight:700;letter-spacing:-0.02em;line-height:1.15;margin:0 0 40px"></h1>
+        <div ref="{{ editorRef }}" contentEditable="true" suppressContentEditableWarning="{{ true }}" spellCheck="{{ true }}" onInput="{{ onInput }}" onPaste="{{ onPaste }}" style="font-size:18px;line-height:1.75;min-height:50vh;white-space:pre-wrap;overflow-wrap:break-word;caret-color:var(--fg)"></div>
       </div>
     </main>
     <sc-if value="{{ notesOpen }}" hint-placeholder-val="{{ false }}">
-      <aside style="border-left:1px solid #e5e7eb;position:sticky;top:0;height:100vh;box-sizing:border-box;display:flex;flex-direction:column;padding:24px 24px 40px">
+      <aside class="wr-notes wr-vh" style="border-left:1px solid var(--line);position:sticky;top:0;height:100vh;box-sizing:border-box;display:flex;flex-direction:column;padding:24px 24px 40px">
         <div style="display:flex;align-items:center;gap:4px;margin:0 0 16px -6px">
-          <button onClick="{{ toggleNotes }}" title="Close notes" style="display:flex;align-items:center;background:none;border:0;padding:6px 6px;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button>
-          <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#a3a3a3">Notes</div>
+          <button onClick="{{ toggleNotes }}" title="Close notes" style="display:flex;align-items:center;background:none;border:0;padding:6px 6px;font:inherit;color:var(--faint);cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button>
+          <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)">Notes</div>
         </div>
-        <textarea ref="{{ notesRef }}" value="{{ notes }}" onChange="{{ onNotesChange }}" placeholder="Notes" spellCheck="{{ true }}" style="flex:1;border:0;outline:none;resize:none;background:none;padding:0;margin:0;font-family:{{ contentFont }};font-size:14px;line-height:1.7;color:#000"></textarea>
+        <textarea ref="{{ notesRef }}" value="{{ notes }}" onChange="{{ onNotesChange }}" placeholder="Notes" spellCheck="{{ true }}" style="flex:1;border:0;outline:none;resize:none;background:none;padding:0;margin:0;font-family:{{ contentFont }};font-size:14px;line-height:1.7;color:var(--fg)"></textarea>
       </aside>
     </sc-if>
   </div>
-  <div style="position:fixed;right:{{ wordsRight }};bottom:16px;font-size:13px;color:#a3a3a3">{{ wordsLabel }}</div>
+  <div style="position:fixed;right:{{ wordsRight }};bottom:16px;font-size:13px;color:var(--faint);transition:right .15s">{{ wordsLabel }}</div>
+</sc-if>
+
+<sc-if value="{{ dictating }}" hint-placeholder-val="{{ false }}">
+  <button onMouseDown="{{ swallow }}" onClick="{{ toggleDictation }}" title="Stop" style="position:fixed;right:{{ dictStopRight }};bottom:16px;z-index:12;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:0;border-radius:6px;background:var(--fg);color:var(--bg);font:inherit;font-size:13px;font-weight:500;cursor:pointer" style-hover="background:var(--fg-hover)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><path d="M12 19v3"></path></svg>Stop</button>
+  <div class="wr-dict" onMouseDown="{{ swallow }}" style="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:10px;height:32px;padding:0 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:13px;color:var(--muted);max-width:min(60vw,560px);box-sizing:border-box">
+    <span style="width:8px;height:8px;border-radius:50%;background:var(--fg);flex:none;animation:{{ dictDotAnim }};transform:scale({{ dictDotScale }});transition:transform .12s"></span>
+    <span style="overflow:hidden;display:flex;justify-content:flex-end;min-width:0"><span style="white-space:nowrap;color:{{ dictLiveColor }}">{{ dictLive }}</span></span>
+  </div>
 </sc-if>
 
 <input type="file" ref="{{ fileInputRef }}" webkitdirectory="" multiple="{{ true }}" onChange="{{ onFilesPicked }}" style="display:none">
 </x-dc>
 <script type="text/x-dc" data-dc-script>
+// Dictation. The Mac app talks to the system speech recognizer through the window.dictate bridge
+// (desktop/src/dictate.js → bin/dictate, on-device Speech.framework); the browser build uses Chrome's Web
+// Speech API and refuses other browsers. Final segments go into the editor through execCommand so onInput
+// (serialize, decorate, autosave, undo) runs unchanged; the partial segment is only previewed.
+// "new paragraph" / "new line" inside a segment break the paragraph; "period", "comma", "question mark" and the
+// other spoken marks become punctuation (neither desktop engine does that itself).
+const Dictation = {
+  isChrome() {
+    const brands = navigator.userAgentData && navigator.userAgentData.brands;
+    if (brands) return brands.some(b => b.brand === 'Google Chrome');
+    const ua = navigator.userAgent; return /Chrome\//.test(ua) && !/Edg\/|OPR\/|Brave|SamsungBrowser|CriOS|Vivaldi|YaBrowser/.test(ua);
+  },
+  webSR() { return window.SpeechRecognition || window.webkitSpeechRecognition; },
+  backend() { if (window.dictate) return 'native'; if (this.webSR() && this.isChrome()) return 'web'; return null; },
+  // spoken punctuation, the way macOS Dictation reads it: the command word becomes its mark, attached to the word
+  // before it (an opening mark to the word after it), the next word capitalized after a sentence end; a mark the
+  // recognizer already attached around the command ("store. Period.") is folded into the spoken one
+  marks: {
+    close: { period: '.', 'full stop': '.', comma: ',', 'question mark': '?', 'exclamation point': '!', 'exclamation mark': '!', colon: ':', semicolon: ';', ellipsis: '…', 'dot dot dot': '…', 'close quote': '"', 'close quotes': '"', 'end quote': '"', 'end quotes': '"', 'close paren': ')', 'close parenthesis': ')', 'close bracket': ']' },
+    open: { 'open quote': '"', 'open quotes': '"', 'begin quote': '"', 'begin quotes': '"', 'open paren': '(', 'open parenthesis': '(', 'open bracket': '[' },
+    tight: { hyphen: '-', apostrophe: "'", dash: '—', 'em dash': '—', 'en dash': '–' }
+  },
+  spoken(text) {
+    if (!this.spokenRe) { const phrases = Object.values(this.marks).flatMap(Object.keys).sort((a, b) => b.length - a.length).map(p => p.replace(/ /g, '\\s+')).join('|'); this.spokenRe = new RegExp(`\\s*([.,;:!?]?)\\s*\\b(${phrases})\\b[.,;:!?]?\\s*`, 'gi'); }
+    let t = String(text || '').replace(this.spokenRe, (m, lead, phrase) => {
+      const key = phrase.toLowerCase().replace(/\s+/g, ' ');
+      if (key in this.marks.close) return this.marks.close[key] + ' ';
+      if (key in this.marks.open) return lead + ' ' + this.marks.open[key];
+      return this.marks.tight[key];
+    });
+    t = t.replace(/ +/g, ' ').replace(/ ([.,;:!?…)\]])/g, '$1').trim();
+    return t.replace(/([.!?]["')\]]?\s+)(\p{Ll})/gu, (m, a, c) => a + c.toUpperCase()); // an ellipsis trails off, the sentence goes on
+  },
+  // a space before the segment unless the paragraph is empty, ends in whitespace or the segment starts with
+  // punctuation; a capital when the segment starts a paragraph or follows a sentence end; a spoken mark the
+  // paragraph already ends with is not doubled
+  join(before, seg) {
+    let t = this.spoken(seg); if (!t) return '';
+    const b = String(before || '').replace(/\u00a0/g, ' ');
+    if (b && /[.,;:!?…]$/.test(b) && t[0] === b[b.length - 1]) { t = t.slice(1).trimStart(); if (!t) return ''; }
+    if (b && !/\s$/.test(b) && !/^[,.;:!?)\]'"…]/.test(t)) t = ' ' + t;
+    if (!b.trim() || /[.!?…]["')\]]?\s*$/.test(b)) t = t.replace(/^(\s*)(\p{Ll})/u, (m, s, c) => s + c.toUpperCase());
+    return t;
+  },
+  split(seg) { return String(seg || '').split(/\s*(?:\bnew\s+(?:paragraph|line)\b[.,]?|\n+)\s*/i); }, // spoken command as words (Chrome) or as the newlines Apple's recognizer emits
+  before(el) {
+    const sel = window.getSelection(); if (!sel.rangeCount || !el.contains(sel.anchorNode)) return '';
+    let block = sel.anchorNode; while (block && block.parentNode !== el) block = block.parentNode;
+    const r = document.createRange(); r.selectNodeContents(block || el); r.setEnd(sel.anchorNode, sel.anchorOffset); return r.toString();
+  },
+  endOf(el) { const r = document.createRange(); r.selectNodeContents(el.lastElementChild || el); r.collapse(false); return r; },
+  // where the words land: the contenteditable focused when dictation began (else fallback()), at its caret,
+  // followed while the user moves it (into another editable too); a target that leaves the DOM gives way to the
+  // fallback, caret at its end
+  inserter(fallback) {
+    let target = null, range = null;
+    const track = () => { // follow the caret, into another editable too
+      const sel = window.getSelection(); if (!sel.rangeCount) return;
+      const n = sel.anchorNode, el = n && (n.nodeType === 1 ? n : n.parentElement), ce = el && el.closest('[contenteditable]');
+      if (ce && ce.isContentEditable) { target = ce; range = sel.getRangeAt(0).cloneRange(); }
+    };
+    const resolve = () => {
+      if (!target || !target.isConnected) { target = fallback(); range = null; }
+      if (!target) return false;
+      if (!range || !range.startContainer.isConnected || !target.contains(range.startContainer)) range = Dictation.endOf(target);
+      return true;
+    };
+    return {
+      begin() {
+        const a = document.activeElement; target = a && a.isContentEditable ? a : fallback(); if (!target) return false;
+        const sel = window.getSelection(); range = sel.rangeCount && target.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : Dictation.endOf(target);
+        document.addEventListener('selectionchange', track); return true;
+      },
+      end() { document.removeEventListener('selectionchange', track); target = null; range = null; },
+      insert(seg) {
+        if (!resolve()) return;
+        target.focus({ preventScroll: true });
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        Dictation.split(seg).forEach((p, i) => { if (i) document.execCommand('insertParagraph'); const t = Dictation.join(Dictation.before(target), p); if (t) document.execCommand('insertText', false, t); });
+        track();
+      }
+    };
+  },
+  // one session; onState: 'starting' | 'listening' | 'off' (always ends with 'off'); onLevel(0…1) = microphone level
+  session({ onState, onPartial, onFinal, onError, onLevel = () => {} }) {
+    let active = false, off = null, rec = null, closing = null;
+    const be = this.backend();
+    const finish = () => { if (!active && !closing) return; active = false; clearTimeout(closing); closing = null; if (off) { off(); off = null; } onState('off'); };
+    const startNative = lang => {
+      off = window.dictate.on(ev => {
+        if (ev.t === 'ready') onState('listening');
+        else if (ev.t === 'partial') onPartial(Dictation.spoken(ev.text));
+        else if (ev.t === 'final') { onPartial(''); if (ev.text) onFinal(ev.text); }
+        else if (ev.t === 'level') onLevel(+ev.v || 0);
+        else if (ev.t === 'note') onError(ev.msg);
+        else if (ev.t === 'log') console.log('dictate: ' + ev.msg);
+        else if (ev.t === 'denied') onError(ev.what === 'microphone' ? 'Microphone blocked' : 'Speech recognition blocked');
+        else if (ev.t === 'error') onError(ev.msg || 'Dictation failed');
+        else if (ev.t === 'exit') finish();
+      });
+      window.dictate.start(lang).then(ok => { if (!ok) finish(); });
+    };
+    const startWeb = lang => {
+      const R = Dictation.webSR(); rec = new R(); rec.continuous = true; rec.interimResults = true; rec.lang = lang || navigator.language || 'en-US';
+      let fatal = false;
+      rec.onstart = () => onState('listening');
+      rec.onsoundstart = () => onLevel(1); rec.onsoundend = () => onLevel(0);
+      rec.onresult = e => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) onFinal(r[0].transcript); else interim += r[0].transcript; } onPartial(Dictation.spoken(interim)); };
+      rec.onerror = e => {
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { fatal = true; onError('Microphone blocked'); }
+        else if (e.error === 'network') { fatal = true; onError('No connection'); }
+        else if (e.error === 'audio-capture') { fatal = true; onError('No microphone'); }
+        else if (e.error === 'no-speech') onError('No speech heard');
+      };
+      rec.onend = () => { if (active && !fatal) { try { rec.start(); return; } catch (err) {} } finish(); }; // Chrome ends after silence or a minute: keep listening until told to stop
+      try { rec.start(); } catch (err) { onError('Dictation failed'); finish(); }
+    };
+    return {
+      backend: be,
+      start(lang) { if (active || !be) return; active = true; onState('starting'); if (be === 'native') startNative(lang); else startWeb(lang); },
+      stop() { if (!active) return; active = false; closing = setTimeout(finish, 3000); if (be === 'native') window.dictate.stop(); else if (rec) { try { rec.stop(); } catch (err) { finish(); } } }
+    };
+  }
+};
 class Component extends DCLogic {
   state = {
-    libName: '', books: [], bookIdx: -1, currentId: null, folderOpen: false, booting: true, resumable: false, looseAlert: false,
-    isFull: false, printMenu: false, settingsOpen: false, confirmDelete: false, status: '',
+    libName: '', books: [], bookIdx: -1, currentId: null, folderOpen: false, booting: true, resumable: false,
+    isFull: false, printMenu: false, settingsOpen: false, confirmDelete: false, confirmTpl: '', status: '', alertText: '', dictating: '', dictPartial: '', dictLevel: 0, dictNote: '',
+    templates: [], tplPick: false, tplSave: false, tplName: '', tplScreen: false, tplEdit: '', tplChoice: '', tplDrop: false,
     renameIdx: -1, renameValue: '', renameMeta: {}, railCollapsed: localStorage.getItem('writer.rail') === 'min', notesOpen: localStorage.getItem('writer.notes') === 'open', findOpen: false, find: '', findIdx: 0, findCount: 0,
-    settings: { font: 'sans', size: 18, typewriter: true, dim: true, roll: 80, pageNums: false }, printScope: 'book'
+    settings: { font: 'sans', size: 18, typewriter: true, dim: true, pageNums: false, theme: 'system' }, printScope: 'book', printRoll: 80,
+    narrow: window.matchMedia('(max-width: 760px)').matches, drawer: false
   };
-  editorRef = React.createRef(); titleRef = React.createRef(); scrollRef = React.createRef(); fileInputRef = React.createRef(); renameRef = React.createRef(); findRef = React.createRef(); notesRef = React.createRef(); findRanges = [];
-  libHandle = null; noFs = false; dragId = null; dirty = new Set(); saveTimer = null; needPerm = false; lastCfg = null; writing = 0; sigs = null; watchTimer = null; lastInput = 0; caretEnd = false;
+  editorRef = React.createRef(); titleRef = React.createRef(); scrollRef = React.createRef(); fileInputRef = React.createRef(); renameRef = React.createRef(); tplRef = React.createRef(); findRef = React.createRef(); notesRef = React.createRef(); findRanges = [];
+  libHandle = null; noFs = false; dragId = null; dict = null; dictTarget = Dictation.inserter(() => this.editorRef.current); dirty = new Set(); dirtyTpl = new Set(); saveTimer = null; needPerm = false; lastCfg = null; writing = 0; sigs = null; watchTimer = null; lastInput = 0; caretEnd = false;
   palette = ['', '#d9d9d9', '#f5c2c2', '#f8d9a8', '#f6e7a1', '#c8e6c9', '#bfe0f5', '#d6ccf2', '#f5c8e2'];
 
   componentDidMount() {
@@ -290,7 +565,10 @@ class Component extends DCLogic {
       const s = JSON.parse(localStorage.getItem('writer.lib.v3'));
       if (s && s.settings) this.setState({ settings: { ...this.state.settings, ...s.settings } });
     } catch (e) {}
-    this.boot();
+    this.applyTheme();
+    this.mq.addEventListener('change', this.applyTheme);
+    this.nq.addEventListener('change', this.onNarrow);
+    if (!this.blocked()) this.boot();
     document.addEventListener('pointerdown', this.onGesture, true);
     document.addEventListener('keydown', this.onGesture, true);
     document.addEventListener('selectionchange', this.onSel);
@@ -302,8 +580,10 @@ class Component extends DCLogic {
     this.syncEditor();
   }
   onHide = e => { if (e.type === 'pagehide' || document.visibilityState === 'hidden') { clearTimeout(this.saveTimer); this.flushDisk(); } else if (document.visibilityState === 'visible') this.startWatch(300); };
-  onUnload = e => { if (this.dirty.size) { clearTimeout(this.saveTimer); this.flushDisk(); e.preventDefault(); e.returnValue = ''; } };
+  onUnload = e => { if (this.dirty.size || this.dirtyTpl.size) { clearTimeout(this.saveTimer); this.flushDisk(); e.preventDefault(); e.returnValue = ''; } };
   componentWillUnmount() {
+    this.mq.removeEventListener('change', this.applyTheme);
+    this.nq.removeEventListener('change', this.onNarrow);
     document.removeEventListener('visibilitychange', this.onHide);
     window.removeEventListener('pagehide', this.onHide);
     window.removeEventListener('beforeunload', this.onUnload);
@@ -311,10 +591,21 @@ class Component extends DCLogic {
     document.removeEventListener('keydown', this.onKey);
     document.removeEventListener('fullscreenchange', this.onFsChange);
   }
-  componentDidUpdate() { this.syncEditor(); }
+  componentDidUpdate() { this.applyTheme(); this.syncEditor(); }
+  mq = window.matchMedia('(prefers-color-scheme: dark)');
+  // Phones: below 760px the rail is a drawer and the side column goes away; on touch screens the hover-only controls stay visible.
+  nq = window.matchMedia('(max-width: 760px)'); hq = window.matchMedia('(hover: none)');
+  onNarrow = e => this.setState({ narrow: e.matches, drawer: false });
+  applyTheme = () => {
+    const t = this.state.settings.theme, v = t === 'dark' || (t !== 'light' && this.mq.matches) ? 'dark' : 'light';
+    if (document.documentElement.dataset.theme !== v) document.documentElement.dataset.theme = v;
+  };
 
   book() { return this.state.books[this.state.bookIdx] || null; }
-  current() { const b = this.book(); if (!b) return null; return b.chapters.find(c => c.id === this.state.currentId) || b.chapters[0] || null; }
+  template() { return this.state.tplEdit ? this.state.templates.find(t => t.file === this.state.tplEdit) || null : null; }
+  current() {
+    if (this.state.tplEdit) { const t = this.template(); return t ? { id: 'tpl:' + t.file + ':' + (t.rev || 0), title: t.name, text: t.text } : null; }
+    const b = this.book(); if (!b) return null; return b.chapters.find(c => c.id === this.state.currentId) || b.chapters[0] || null; }
   words(t) { return ((t || '').replace(/^(#{1,3}\s+|>\s?|[-*+]\s+|\d+[.)]\s+)/gm, '').replace(/^\s*[-*]{3,}\s*$/gm, '').replace(/[*_~`]/g, '').match(/\S+/g) || []).length; }
   mdEsc(s) { return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(/\u00a0/g, '&nbsp;'); }
   mdLine(s) {
@@ -327,12 +618,12 @@ class Component extends DCLogic {
     return { t: 'p', mark: '', c: s };
   }
   mdInline(s, edit) {
-    const esc = this.mdEsc, mk = m => edit ? '<span style="color:#a3a3a3">' + esc(m) + '</span>' : '';
+    const esc = this.mdEsc, mk = m => edit ? '<span style="color:var(--faint)">' + esc(m) + '</span>' : '';
     const re = /(`+)([^`]+?)\1|(\*\*|__)(?=\S)([\s\S]*?\S)\3|(~~)(?=\S)(.*?\S)\5|(?<!\w)(\*|_)(?=\S)([^*_]*?\S)\7(?!\w)/g;
     let out = '', i = 0, m;
     while ((m = re.exec(s))) {
       out += esc(s.slice(i, m.index)); i = re.lastIndex;
-      if (m[1]) out += mk(m[1]) + '<code style="font-family:ui-monospace,Menlo,monospace;font-size:.9em;background:#f5f5f5;border-radius:4px;padding:0 .2em">' + esc(m[2]) + '</code>' + mk(m[1]);
+      if (m[1]) out += mk(m[1]) + '<code style="font-family:ui-monospace,Menlo,monospace;font-size:.9em;background:var(--fill);border-radius:4px;padding:0 .2em">' + esc(m[2]) + '</code>' + mk(m[1]);
       else if (m[3]) out += mk(m[3]) + '<strong>' + esc(m[4]) + '</strong>' + mk(m[3]);
       else if (m[5]) out += mk(m[5]) + '<s>' + esc(m[6]) + '</s>' + mk(m[5]);
       else out += mk(m[7]) + '<em>' + esc(m[8]) + '</em>' + mk(m[7]);
@@ -354,12 +645,12 @@ class Component extends DCLogic {
   }
   lineStyles = {
     h1: 'font-size:1.6em;font-weight:700;line-height:1.25;margin:.6em 0 .2em;letter-spacing:-0.01em', h2: 'font-size:1.3em;font-weight:600;line-height:1.3;margin:.5em 0 .15em',
-    h3: 'font-size:1.1em;font-weight:600;margin:.4em 0 .1em', q: 'padding-left:1em;border-left:2px solid #e5e7eb;color:#525252', ul: 'padding-left:1em', ol: 'padding-left:1em', hr: 'letter-spacing:.3em', p: '',
+    h3: 'font-size:1.1em;font-weight:600;margin:.4em 0 .1em', q: 'padding-left:1em;border-left:2px solid var(--line);color:var(--muted)', ul: 'padding-left:1em', ol: 'padding-left:1em', hr: 'letter-spacing:.3em', p: '',
   };
   decorateAll(el) { for (const p of el.children) this.decorate(p); }
   decorate(p) {
     const text = p.textContent, L = this.mdLine(text);
-    const mk = m => m ? '<span style="color:#a3a3a3">' + this.mdEsc(m) + '</span>' : '';
+    const mk = m => m ? '<span style="color:var(--faint)">' + this.mdEsc(m) + '</span>' : '';
     const html = text ? mk(L.mark) + this.mdInline(L.c, true) : '<br>';
     if (p.dataset.ls !== L.t) { p.style.cssText = 'margin:0;' + this.lineStyles[L.t]; p.dataset.ls = L.t; }
     if (p.innerHTML === html) return;
@@ -453,6 +744,7 @@ class Component extends DCLogic {
   }
   applyAids() {
     const el = this.editorRef.current; if (!el || !this.state.isFull) return;
+    if (!this.state.settings.dim) for (const k of el.children) k.style.opacity = '1';
     const sel = window.getSelection(); if (!sel.rangeCount || !el.contains(sel.anchorNode)) return;
     let block = sel.anchorNode; while (block && block.parentNode !== el) block = block.parentNode;
     for (const k of el.children) k.style.opacity = this.state.settings.dim && block && k !== block ? '0.3' : '1';
@@ -510,11 +802,12 @@ class Component extends DCLogic {
   }
   onGesture = () => { if (this.needPerm && this.libHandle) { this.needPerm = false; this.ensureWrite().then(ok => { if (ok && this.dirty.size) this.flushDisk(); }); } };
   flushDisk = async () => {
-    if (!this.libHandle || !this.dirty.size) return;
+    if (!this.libHandle || (!this.dirty.size && !this.dirtyTpl.size)) return;
     if (!await this.ensureWrite()) { this.flash('Save failed'); return; }
-    const names = [...this.dirty]; this.dirty.clear();
+    const names = [...this.dirty], tpls = [...this.dirtyTpl]; this.dirty.clear(); this.dirtyTpl.clear();
     try {
       for (const name of names) { const b = this.state.books.find(x => x.name === name); if (b) await this.writeBook(b); }
+      if (tpls.length) await this.writeTemplates(tpls);
       this.flash('Saved ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
     } catch (e) { console.error(e); this.flash('Save failed'); }
   };
@@ -529,7 +822,7 @@ class Component extends DCLogic {
       const fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable();
       await w.write(this.toMd(b.chapters[i])); await w.close();
       const notes = (b.chapters[i].notes || '').trim();
-      if (notes) { const nn = this.notesName(name); keep.add(nn); const nh = await dir.getFileHandle(nn, { create: true }), nw = await nh.createWritable(); await nw.write(notes + '\n'); await nw.close(); }
+      if (notes) { const nn = this.notesName(name); keep.add(nn); const nh = await dir.getFileHandle(nn, { create: true }), nw = await nh.createWritable(); await nw.write(this.nl(notes)); await nw.close(); }
     }
     for await (const [name, entry] of dir.entries()) if (entry.kind === 'file' && /^\d{2}-.*\.md$/.test(name) && !keep.has(name)) await dir.removeEntry(name);
     const mj = this.metaJson(b);
@@ -542,8 +835,10 @@ class Component extends DCLogic {
 
   onInput = e => {
     const text = this.serialize(e.currentTarget), ch = this.current(); if (!ch) return;
-    this.lastInput = Date.now(); this.markDirty();
+    this.lastInput = Date.now();
     if (!e.nativeEvent || !e.nativeEvent.isComposing) this.decorateAll(e.currentTarget);
+    if (this.state.tplEdit) { this.setTemplateText(text); return; }
+    this.markDirty();
     this.update((books, s) => { const c = books[s.bookIdx].chapters.find(x => x.id === ch.id); if (c) c.text = text; });
     this.applyAids();
     if (this.state.findOpen) this.runFind();
@@ -565,21 +860,23 @@ class Component extends DCLogic {
   };
   onTitleBlur = e => {
     const t = e.currentTarget.textContent.trim(); e.currentTarget.textContent = t; const ch = this.current(); if (!ch || ch.title === t) return;
+    if (this.state.tplEdit) { this.renameTemplate(t); return; }
     this.markDirty(); this.update((books, s) => { const c = books[s.bookIdx].chapters.find(x => x.id === ch.id); if (c) c.title = t; });
   };
   onTitleKey = e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); const ed = this.editorRef.current; if (ed) ed.focus(); } };
 
   onKey = e => {
-    if (this.state.looseAlert) { if (e.key === 'Escape') this.closeAlert(); return; }
+    if (this.state.alertText) { if (e.key === 'Escape') this.closeAlert(); return; }
     if (!this.state.folderOpen) return;
-    if (e.key === 'Escape') { if (this.state.isFull) this.exitFull(); else if (this.state.confirmDelete) this.setState({ confirmDelete: false }); else this.setState({ printMenu: false, settingsOpen: false, renameIdx: -1 }); }
+    if (e.key === 'Escape') { if (this.state.isFull) this.exitFull(); else if (this.state.confirmDelete) this.setState({ confirmDelete: false }); else this.setState({ printMenu: false, settingsOpen: false, renameIdx: -1, tplPick: false, tplSave: false }); }
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); this.saveNow(); }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'd' && this.state.bookIdx >= 0) { e.preventDefault(); this.toggleDictation(); }
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && this.state.bookIdx >= 0 && !this.state.isFull) {
       e.preventDefault();
       if (this.state.findOpen) { const i = this.findRef.current; if (i) { i.focus(); i.select(); } } else this.toggleFind();
     }
   };
-  saveNow = () => { const b = this.book(); if (!b) return; if (this.libHandle) { this.dirty.add(b.name); clearTimeout(this.saveTimer); this.flushDisk(); } else this.download(); };
+  saveNow = () => { if (this.state.tplEdit) { clearTimeout(this.saveTimer); this.flushDisk(); return; } const b = this.book(); if (!b) return; if (this.libHandle) { this.dirty.add(b.name); clearTimeout(this.saveTimer); this.flushDisk(); } else this.download(); };
   download() {
     const ch = this.current(), b = this.book(); if (!ch) return;
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([this.toMd(ch)], { type: 'text/markdown' }));
@@ -589,21 +886,47 @@ class Component extends DCLogic {
   enterFull = () => { if (!this.current()) return; this.setState({ isFull: true }); try { document.documentElement.requestFullscreen().catch(() => {}); } catch (e) {} };
   exitFull = () => { this.setState({ isFull: false }); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
   stop = e => e.stopPropagation();
-  closeMenus = () => this.setState({ printMenu: false, settingsOpen: false, confirmDelete: false, renameIdx: -1 });
+  closeMenus = () => this.setState({ printMenu: false, settingsOpen: false, confirmDelete: false, renameIdx: -1, tplPick: false, tplSave: false });
   openBookSettings = () => { if (this.book()) this.startRename(this.state.bookIdx); };
-  loose = () => this.setState({ looseAlert: true, settingsOpen: false });
-  closeAlert = () => this.setState({ looseAlert: false });
+  loose = () => this.setState({ alertText: 'This folder should only contain subfolders.', settingsOpen: false });
+  closeAlert = () => this.setState({ alertText: '' });
+  swallow = e => e.preventDefault();
+  // ---- dictation (see Dictation above): words land in the focused editor, else the body editor at its end
+  toggleDictation = () => { if (this.state.dictating) this.stopDictation(); else this.startDictation(); };
+  startDictation() {
+    if (this.state.dictating || !this.book()) return false;
+    if (!Dictation.backend()) { this.setState({ alertText: 'Dictation requires Google Chrome.' }); return false; }
+    if (!this.dictTarget.begin()) return false;
+    this.dict = Dictation.session({
+      onState: st => { if (st === 'off') { this.dictTarget.end(); this.dict = null; clearTimeout(this.noteTimer); this.setState({ dictating: '', dictPartial: '', dictLevel: 0, dictNote: '' }); } else this.setState({ dictating: st }); },
+      onPartial: t => this.setState({ dictPartial: t }),
+      onFinal: t => { this.lastInput = Date.now(); this.dictTarget.insert(t); },
+      onLevel: v => { if (Math.abs(v - this.state.dictLevel) > 0.04) this.setState({ dictLevel: v }); },
+      onError: msg => { this.flash(msg); this.setState({ dictNote: msg }); clearTimeout(this.noteTimer); this.noteTimer = setTimeout(() => this.setState({ dictNote: '' }), 3000); }
+    });
+    this.setState({ dictating: 'starting', dictPartial: '' });
+    this.dict.start(navigator.language);
+    return true;
+  }
+  stopDictation() { if (this.dict) this.dict.stop(); }
   openSettings = () => this.setState({ settingsOpen: true });
   logOut = async () => {
-    clearTimeout(this.saveTimer); await this.flushDisk();
+    this.stopDictation(); clearTimeout(this.saveTimer); await this.flushDisk();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    this.stopWatch(); this.sigs = null; this.libHandle = null; this.dirty.clear(); await this.forget();
-    this.setState({ folderOpen: false, resumable: false, libName: '', books: [], bookIdx: -1, currentId: null, isFull: false, settingsOpen: false, printMenu: false, confirmDelete: false, findOpen: false, renameIdx: -1, status: '' });
+    this.stopWatch(); this.sigs = null; this.libHandle = null; this.dirty.clear(); this.dirtyTpl.clear(); await this.forget();
+    this.setState({ folderOpen: false, resumable: false, libName: '', books: [], templates: [], bookIdx: -1, currentId: null, isFull: false, settingsOpen: false, printMenu: false, confirmDelete: false, findOpen: false, renameIdx: -1, tplPick: false, tplSave: false, tplScreen: false, tplEdit: '', status: '' });
   };
   setSetting(k, v) { this.setState(s => ({ settings: { ...s.settings, [k]: v } }), this.persist); }
+  toggleAid(k) {
+    this.setState(s => ({ settings: { ...s.settings, [k]: !s.settings[k] } }), () => {
+      this.persist();
+      const ed = this.editorRef.current; if (ed) ed.focus({ preventScroll: true });
+      requestAnimationFrame(() => this.applyAids());
+    });
+  }
 
   // ---- shelf
-  backToShelf = () => { clearTimeout(this.saveTimer); this.flushDisk(); this.setState({ bookIdx: -1, currentId: null }); };
+  backToShelf = () => { this.stopDictation(); clearTimeout(this.saveTimer); this.flushDisk(); this.setState({ bookIdx: -1, currentId: null }); };
   openBook(i) {
     clearTimeout(this.openTimer);
     this.openTimer = setTimeout(() => { const b = this.state.books[i]; if (b) this.setState({ bookIdx: i, currentId: b.chapters[0] ? b.chapters[0].id : null, renameIdx: -1 }); }, 220);
@@ -621,7 +944,7 @@ class Component extends DCLogic {
     const i = this.state.renameIdx, t = this.state.renameValue.trim().replace(/[\\/:*?"<>|]/g, ''), meta = this.cleanMeta(this.state.renameMeta);
     if (i === -2) {
       if (!t) return this.cancelRename();
-      if (this.state.books.some(x => x.name === t)) return this.flash('Name in use');
+      if (this.isTplDir(t) || this.state.books.some(x => x.name === t)) return this.flash('Name in use');
       const b = { name: t, chapters: [{ id: 'c' + Date.now(), title: '', text: '' }], meta };
       if (this.libHandle) {
         if (!await this.ensureWrite()) { this.flash('Could not create'); return; }
@@ -632,7 +955,7 @@ class Component extends DCLogic {
     }
     const b = this.state.books[i]; if (!b) return;
     if (!t) return this.cancelRename();
-    if (t !== b.name && this.state.books.some((x, j) => j !== i && x.name === t)) return this.flash('Name in use');
+    if (t !== b.name && (this.isTplDir(t) || this.state.books.some((x, j) => j !== i && x.name === t))) return this.flash('Name in use');
     if (this.libHandle) {
       if (!await this.ensureWrite()) { this.flash('Rename failed'); return; }
       this.writing++;
@@ -644,14 +967,117 @@ class Component extends DCLogic {
   onGoalChange = e => { const v = e.target.value; this.setState(s => ({ renameMeta: { ...s.renameMeta, wordGoal: v } })); };
   pickColor = c => this.setState(s => { const m = { ...s.renameMeta }; if (c) m.color = c; else delete m.color; return { renameMeta: m }; });
 
+  // ---- new chapter: blank, or from a template in the library's Templates/ folder (the picker only shows when there are any)
   newChapter = () => {
     if (!this.book()) return;
-    const id = 'c' + Date.now(); this.markDirty();
-    this.update((books, s) => { books[s.bookIdx].chapters.push({ id, title: '', text: '' }); return { currentId: id }; });
-    setTimeout(() => { const t = this.titleRef.current; if (t) t.focus(); }, 50);
+    if (this.state.templates.length) this.setState({ tplPick: true, tplChoice: '', tplDrop: false }); else this.addChapter('');
   };
-  askDelete = () => { if (this.current()) this.setState({ confirmDelete: true, confirmBook: false }); };
-  askDeleteBook = () => { if (this.state.books[this.state.renameIdx]) this.setState({ confirmDelete: true, confirmBook: true }); };
+  toggleTplDrop = e => { e.stopPropagation(); this.setState(s => ({ tplDrop: !s.tplDrop })); };
+  closeTplDrop = e => { e.stopPropagation(); if (this.state.tplDrop) this.setState({ tplDrop: false }); };
+  pickTpl = file => this.setState({ tplChoice: file, tplDrop: false });
+  createChapter = () => { const t = this.state.templates.find(x => x.file === this.state.tplChoice); this.addChapter(t ? t.text : ''); };
+  addChapter(text) {
+    if (!this.book()) return;
+    const id = 'c' + Date.now(); this.markDirty();
+    this.update((books, s) => { books[s.bookIdx].chapters.push({ id, title: '', text: text || '' }); return { currentId: id, tplPick: false }; });
+    setTimeout(() => { const t = this.titleRef.current; if (t) t.focus(); }, 50);
+  }
+  blankChapter = () => this.addChapter('');
+  // ---- templates: Templates/*.md in the library root, chapter format (# Name, body); the folder is the only source
+  isTplDir(n) { return String(n).toLowerCase() === 'templates'; }
+  tplFile(name) { return ((name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'template') + '.md'; }
+  tplFromMd(file, text) {
+    const m = text.match(/^#\s+(.+)\n+/); const name = m ? m[1].trim() : file.replace(/\.(md|txt)$/i, '').replace(/-/g, ' ');
+    return { file, name, text: (m ? text.slice(m[0].length) : text).replace(/\s+$/, ''), rev: Date.now() };
+  }
+  sortTpl(list) { return list.sort((a, b) => a.name.localeCompare(b.name)); }
+  async readTemplates(lib) {
+    let dir; try { dir = await lib.getDirectoryHandle('Templates'); } catch (e) { return []; }
+    return this.sortTpl((await this.readFiles(dir)).filter(f => /\.(md|txt)$/i.test(f.name)).map(f => this.tplFromMd(f.name, f.text)));
+  }
+  async tplSig(lib) { try { return await this.bookSig(await lib.getDirectoryHandle('Templates')); } catch (e) { return ''; } }
+  openTplSave = () => {
+    const cur = this.current(); if (!cur) return;
+    if (!this.libHandle) { this.flash('Open the folder in Chrome or Edge to save templates'); return; }
+    this.setState({ tplSave: true, tplName: cur.title || '' });
+    setTimeout(() => { const r = this.tplRef.current; if (r) { r.focus(); r.select(); } }, 50);
+  };
+  onTplNameChange = e => this.setState({ tplName: e.target.value });
+  onTplNameKey = e => { if (e.key === 'Enter') this.saveTemplate(); if (e.key === 'Escape') this.closeMenus(); };
+  async writeTplFile(dir, t) { const fh = await dir.getFileHandle(t.file, { create: true }), w = await fh.createWritable(); await w.write(this.nl('# ' + t.name + '\n\n' + (t.text || ''))); await w.close(); }
+  async writeTemplates(files) {
+    this.writing++;
+    try {
+      const dir = await this.libHandle.getDirectoryHandle('Templates', { create: true });
+      for (const f of files) { const t = this.state.templates.find(x => x.file === f); if (t) await this.writeTplFile(dir, t); }
+      if (this.sigs) this.sigs.set('Templates/', await this.bookSig(dir));
+    } finally { this.writing--; }
+  }
+  saveTemplate = async () => {
+    const fromScreen = this.state.tplScreen, cur = fromScreen ? null : this.current(), name = this.state.tplName.trim().replace(/[\\/:*?"<>|]/g, '');
+    if (!this.libHandle || (!fromScreen && !cur)) return;
+    if (!name) return this.closeMenus();
+    const file = this.tplFile(name);
+    if (this.state.templates.some(t => t.name.toLowerCase() === name.toLowerCase() || t.file === file)) return this.flash('Name in use');
+    const t = { file, name, text: cur ? cur.text || '' : '' };
+    if (!await this.ensureWrite()) { this.flash('Save failed'); return; }
+    this.writing++;
+    try {
+      const dir = await this.libHandle.getDirectoryHandle('Templates', { create: true });
+      await this.writeTplFile(dir, t);
+      if (this.sigs) this.sigs.set('Templates/', await this.bookSig(dir));
+    } catch (e) { console.error(e); this.flash('Save failed'); return; } finally { this.writing--; }
+    this.setState(s => ({ templates: this.sortTpl([...s.templates, t]), tplSave: false, tplName: '', tplEdit: fromScreen ? file : s.tplEdit }));
+    if (fromScreen) setTimeout(() => { const ed = this.editorRef.current; if (ed) ed.focus(); }, 50); else this.flash('Template saved');
+  };
+  // ---- Templates screen: the list, one template open in the chapter editor (title = name, body autosaves to its file)
+  openTemplates = () => { clearTimeout(this.openTimer); this.setState({ tplScreen: true, tplEdit: '' }); };
+  backFromTemplates = () => { clearTimeout(this.saveTimer); this.flushDisk(); this.setState({ tplScreen: false, tplEdit: '' }); };
+  backToTemplates = () => { clearTimeout(this.saveTimer); this.flushDisk(); this.setState({ tplEdit: '' }); };
+  openTemplate(t) { this.setState({ tplEdit: t.file }); }
+  newTemplate = () => {
+    if (!this.libHandle) { this.flash('Open the folder in Chrome or Edge to save templates'); return; }
+    this.setState({ tplSave: true, tplName: '' });
+    setTimeout(() => { const r = this.tplRef.current; if (r) r.focus(); }, 50);
+  };
+  setTemplateText(text) {
+    const file = this.state.tplEdit; this.dirtyTpl.add(file);
+    this.setState(s => ({ templates: s.templates.map(t => t.file === file ? { ...t, text } : t) }), this.persist);
+  }
+  renameTemplate = async raw => {
+    const t = this.template(), name = raw.replace(/[\\/:*?"<>|]/g, '').trim(); if (!t) return;
+    if (!name || name === t.name) { this.setState({}); return; }
+    const file = this.tplFile(name);
+    if (this.state.templates.some(x => x.file !== t.file && (x.name.toLowerCase() === name.toLowerCase() || x.file === file))) { this.flash('Name in use'); this.setState({}); return; }
+    const nt = { ...t, file, name };
+    if (this.libHandle) {
+      if (!await this.ensureWrite()) { this.flash('Save failed'); this.setState({}); return; }
+      this.writing++;
+      try {
+        const dir = await this.libHandle.getDirectoryHandle('Templates', { create: true });
+        await this.writeTplFile(dir, nt);
+        if (file !== t.file) { try { await dir.removeEntry(t.file); } catch (e) {} }
+        if (this.sigs) this.sigs.set('Templates/', await this.bookSig(dir));
+      } catch (e) { console.error(e); this.flash('Save failed'); this.setState({}); return; } finally { this.writing--; }
+    }
+    this.dirtyTpl.delete(t.file);
+    this.setState(s => ({ templates: this.sortTpl(s.templates.map(x => x.file === t.file ? nt : x)), tplEdit: file }));
+  };
+  deleteCurrentTemplate = () => { const t = this.template(); if (t) this.askDeleteTemplate(t); };
+  askDeleteTemplate(t) { this.setState({ confirmDelete: true, confirmBook: false, confirmTpl: t.file }); }
+  deleteTemplate = async () => {
+    const t = this.state.templates.find(x => x.file === this.state.confirmTpl); this.setState({ confirmDelete: false, confirmTpl: '' }); if (!t) return;
+    if (this.libHandle) {
+      if (!await this.ensureWrite()) { this.flash('Delete failed'); return; }
+      this.writing++;
+      try { const dir = await this.libHandle.getDirectoryHandle('Templates'); await dir.removeEntry(t.file); if (this.sigs) this.sigs.set('Templates/', await this.bookSig(dir)); }
+      catch (e) { console.error(e); this.flash('Delete failed'); return; } finally { this.writing--; }
+    }
+    this.dirtyTpl.delete(t.file);
+    this.setState(s => ({ templates: s.templates.filter(x => x.file !== t.file), tplEdit: s.tplEdit === t.file ? '' : s.tplEdit }));
+  };
+  askDelete = () => { if (this.current()) this.setState({ confirmDelete: true, confirmBook: false, confirmTpl: '' }); };
+  askDeleteBook = () => { if (this.state.books[this.state.renameIdx]) this.setState({ confirmDelete: true, confirmBook: true, confirmTpl: '' }); };
   deleteBook = async () => {
     const i = this.state.renameIdx, b = this.state.books[i]; if (!b) return;
     this.setState({ confirmDelete: false });
@@ -679,7 +1105,8 @@ class Component extends DCLogic {
   // ---- disk: folder → one subfolder per book → NN-title.md per chapter
   slug(i, t) { return String(i + 1).padStart(2, '0') + '-' + ((t || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled') + '.md'; }
   notesName(slug) { return slug.replace(/\.md$/, '.notes.md'); }
-  toMd(ch) { return '# ' + (ch.title || 'Untitled') + '\n\n' + (ch.text || '') + '\n'; }
+  nl(s) { return s.endsWith('\n') ? s : s + '\n'; }
+  toMd(ch) { return this.nl('# ' + (ch.title || 'Untitled') + '\n\n' + (ch.text || '')); }
   fromMd(name, text) {
     const m = text.match(/^#\s+(.+)\n+/); const title = m ? m[1].trim() : name.replace(/^\d+-/, '').replace(/\.(md|txt)$/i, '').replace(/-/g, ' ');
     const body = (m ? text.slice(m[0].length) : text).replace(/\s+$/, '');
@@ -689,10 +1116,10 @@ class Component extends DCLogic {
     if (window.showDirectoryPicker && !this.noFs) {
       try {
         const lib = await window.showDirectoryPicker({ mode: 'readwrite' });
-        const books = await this.readLib(lib);
+        const books = await this.readLib(lib), templates = await this.readTemplates(lib);
         await this.applyConfig(lib); this.sigs = await this.diskSigs(lib);
         this.libHandle = lib; await this.remember(lib);
-        this.setState({ booting: false, resumable: false }); this.loadLibrary(lib.name, books); return;
+        this.setState({ booting: false, resumable: false }); this.loadLibrary(lib.name, books, templates); return;
       } catch (e) { if (e.name === 'AbortError') return; if (e.name === 'LooseFiles') { this.loose(); return; } this.noFs = true; }
     }
     this.fileInputRef.current.click();
@@ -701,14 +1128,15 @@ class Component extends DCLogic {
     const all = Array.from(e.target.files).filter(f => /\.(md|txt)$/i.test(f.name) || /^book\.json$/i.test(f.name));
     if (all.some(f => f.webkitRelativePath.split('/').length === 2 && /\.(md|txt)$/i.test(f.name))) { this.loose(); e.target.value = ''; return; }
     const list = all.filter(f => f.webkitRelativePath.split('/').length >= 3);
-    const byBook = new Map(); let libName = '';
+    const byBook = new Map(), tpl = []; let libName = '';
     for (const f of list) {
       const parts = f.webkitRelativePath.split('/'); libName = parts[0];
+      if (this.isTplDir(parts[1])) { if (parts.length === 3 && /\.(md|txt)$/i.test(f.name)) tpl.push(this.tplFromMd(f.name, await f.text())); continue; }
       if (!byBook.has(parts[1])) byBook.set(parts[1], []);
       byBook.get(parts[1]).push({ name: f.name, text: await f.text() });
     }
     const books = [...byBook].map(([name, files]) => this.makeBook(name, files));
-    this.loadLibrary(libName, books); e.target.value = '';
+    this.loadLibrary(libName, books, this.sortTpl(tpl)); e.target.value = '';
   };
   cleanMeta(m) {
     const o = m && typeof m === 'object' ? { ...m } : {};
@@ -728,10 +1156,10 @@ class Component extends DCLogic {
     if (!chapters.length) chapters.push({ id: 'c' + Math.random().toString(36).slice(2), title: '', text: '' });
     return { name, chapters, meta };
   }
-  loadLibrary(libName, books) {
+  loadLibrary(libName, books, templates) {
     books.sort((a, b) => a.name.localeCompare(b.name));
-    this.dirty.clear(); clearTimeout(this.saveTimer);
-    this.setState({ libName, books, bookIdx: -1, currentId: null, settingsOpen: false, folderOpen: true }, () => { this.persist(); this.startWatch(); });
+    this.dirty.clear(); this.dirtyTpl.clear(); clearTimeout(this.saveTimer);
+    this.setState({ libName, books, templates: templates || [], bookIdx: -1, currentId: null, tplScreen: false, tplEdit: '', settingsOpen: false, folderOpen: true }, () => { this.persist(); this.startWatch(); });
   }
 
   // ---- remembered folder: only the directory handle lives in IndexedDB; books are always read from disk
@@ -749,6 +1177,8 @@ class Component extends DCLogic {
   }
   remember(h) { return this.idb('readwrite', s => s.put(h, 'lib')).catch(() => {}); }
   forget() { return this.idb('readwrite', s => s.delete('lib')).catch(() => {}); }
+  // The web build runs only in Google Chrome; the Mac app (window.dictate bridge) is always allowed. Nothing else renders while blocked.
+  blocked = () => !window.dictate && !Dictation.isChrome();
   boot = async () => {
     let h = null;
     try { h = await this.idb('readonly', s => s.get('lib')); } catch (e) {}
@@ -764,9 +1194,9 @@ class Component extends DCLogic {
   };
   async openRemembered() {
     try {
-      const books = await this.readLib(this.libHandle);
+      const books = await this.readLib(this.libHandle), templates = await this.readTemplates(this.libHandle);
       await this.applyConfig(this.libHandle); this.sigs = await this.diskSigs(this.libHandle);
-      this.setState({ booting: false, resumable: false }); this.loadLibrary(this.libHandle.name, books);
+      this.setState({ booting: false, resumable: false }); this.loadLibrary(this.libHandle.name, books, templates);
     } catch (e) {
       if (e.name === 'LooseFiles') { this.setState({ booting: false, resumable: true }); this.loose(); return; }
       this.libHandle = null; await this.forget();
@@ -791,8 +1221,9 @@ class Component extends DCLogic {
   }
   async diskSigs(lib) {
     const sigs = new Map();
-    for await (const [bname, entry] of lib.entries()) { if (bname.startsWith('.') || entry.kind !== 'directory') continue; sigs.set(bname, await this.bookSig(entry)); }
+    for await (const [bname, entry] of lib.entries()) { if (bname.startsWith('.') || entry.kind !== 'directory' || this.isTplDir(bname)) continue; sigs.set(bname, await this.bookSig(entry)); }
     try { const f = await (await lib.getFileHandle('writer.json')).getFile(); sigs.set('', f.lastModified + ':' + f.size); } catch (e) { sigs.set('', ''); }
+    sigs.set('Templates/', await this.tplSig(lib));
     return sigs;
   }
   startWatch(delay) { this.stopWatch(); if (this.libHandle && this.state.folderOpen) this.watchTimer = setTimeout(this.watchTick, delay == null ? 3000 : delay); }
@@ -825,14 +1256,18 @@ class Component extends DCLogic {
       const cfg = await this.readConfig(lib);
       if (cfg && cfg.settings && typeof cfg.settings === 'object') { const settings = { ...this.state.settings, ...cfg.settings }; this.lastCfg = JSON.stringify({ settings }); this.setState({ settings }, this.persist); }
     }
+    if (sigs.get('Templates/') !== old.get('Templates/')) {
+      if (this.dirtyTpl.size || (this.state.tplEdit && Date.now() - this.lastInput < 2000)) sigs.set('Templates/', old.get('Templates/'));
+      else { const templates = await this.readTemplates(lib); this.flagCaret(!!this.state.tplEdit); this.setState(s => ({ templates, tplEdit: templates.some(t => t.file === s.tplEdit) ? s.tplEdit : '' })); }
+    }
     const curBook = this.book(), curName = curBook ? curBook.name : null;
     const fresh = new Map(), removed = [];
     for (const [name, sig] of sigs) {
-      if (name === '' || (old.has(name) && old.get(name) === sig)) continue;
+      if (name === '' || name === 'Templates/' || (old.has(name) && old.get(name) === sig)) continue;
       if (this.dirty.has(name) || (name === curName && Date.now() - this.lastInput < 2000)) { if (old.has(name)) sigs.set(name, old.get(name)); else sigs.delete(name); continue; }
       fresh.set(name, this.makeBook(name, await this.readFiles(await lib.getDirectoryHandle(name))));
     }
-    for (const name of old.keys()) if (name && !sigs.has(name)) { if (this.dirty.has(name)) sigs.set(name, old.get(name)); else removed.push(name); }
+    for (const name of old.keys()) if (name && name !== 'Templates/' && !sigs.has(name)) { if (this.dirty.has(name)) sigs.set(name, old.get(name)); else removed.push(name); }
     if (!fresh.size && !removed.length) return;
     this.flagCaret(curName && fresh.has(curName));
     this.update((books, s) => {
@@ -845,7 +1280,7 @@ class Component extends DCLogic {
   async readLib(lib) {
     const books = [];
     for await (const [bname, entry] of lib.entries()) {
-      if (bname.startsWith('.')) continue;
+      if (bname.startsWith('.') || this.isTplDir(bname)) continue;
       if (entry.kind === 'file') { if (/\.(md|txt)$/i.test(bname)) throw this.looseError(); continue; }
       books.push(this.makeBook(bname, await this.readFiles(entry)));
     }
@@ -857,12 +1292,12 @@ class Component extends DCLogic {
     this.setState({ status: 'Syncing' });
     try {
       clearTimeout(this.saveTimer); await this.flushDisk();
-      const books = await this.readLib(this.libHandle);
+      const books = await this.readLib(this.libHandle), templates = await this.readTemplates(this.libHandle);
       await this.applyConfig(this.libHandle); this.sigs = await this.diskSigs(this.libHandle);
-      books.sort((a, b) => a.name.localeCompare(b.name));
-      this.flagCaret(!!this.book());
+      books.sort((a, b) => a.name.localeCompare(b.name)); this.setState(s => ({ templates, tplEdit: templates.some(t => t.file === s.tplEdit) ? s.tplEdit : '' }));
+      this.flagCaret(!!this.book() || !!this.state.tplEdit);
       this.update((old, s) => { old.length = 0; old.push(...books); return this.repoint(old, s, new Set(books.map(b => b.name))); });
-      this.dirty.clear();
+      this.dirty.clear(); this.dirtyTpl.clear();
       this.flash('Up to date');
     } catch (e) { if (e.name === 'LooseFiles') this.loose(); else { console.error(e); this.flash('Sync failed'); } }
   };
@@ -899,7 +1334,7 @@ class Component extends DCLogic {
     const b = this.book(); if (!b || !b.chapters.length) return;
     const folder = b.name.replace(/[\\/:*?"<>|]/g, '-');
     const files = [];
-    b.chapters.forEach((c, i) => { const s = this.slug(i, c.title); files.push([folder + '/' + s, this.toMd(c)]); if ((c.notes || '').trim()) files.push([folder + '/' + this.notesName(s), c.notes.trim() + '\n']); });
+    b.chapters.forEach((c, i) => { const s = this.slug(i, c.title); files.push([folder + '/' + s, this.toMd(c)]); if ((c.notes || '').trim()) files.push([folder + '/' + this.notesName(s), this.nl(c.notes.trim())]); });
     const mj = this.metaJson(b); if (mj) files.push([folder + '/book.json', mj]);
     const blob = this.zip(files);
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = folder + '.zip'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -911,7 +1346,7 @@ class Component extends DCLogic {
     const b = this.book(), cur = this.current(); if (!b) return;
     const list = scope === 'chapter' ? (cur ? [cur] : []) : b.chapters;
     const esc = s => String(s || '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-    const w = this.state.settings.roll, receipt = mode === 'receipt', ff = this.fontFamily();
+    const w = this.state.printRoll, receipt = mode === 'receipt', ff = this.fontFamily();
     const paged = !receipt && !!this.state.settings.pageNums;
     const html = list.map((c, i) => '<div class="ch ch' + i + '">' + (i === 0 && !paged ? '<div class="bt">' + esc(b.name) + '</div>' : '') +
       '<div class="ct">' + esc(c.title || 'Untitled') + '</div>' + this.mdHtml(c.text) + '<div class="tail"></div></div>').join('');
@@ -938,59 +1373,73 @@ class Component extends DCLogic {
   }
 
   renderVals() {
-    const { books, bookIdx, isFull, printMenu, settingsOpen, status, confirmDelete, settings, libName, printScope, renameIdx, renameValue, renameMeta, folderOpen, booting, resumable, looseAlert } = this.state;
-    const gated = !folderOpen && !booting;
+    const { books, bookIdx, isFull, printMenu, settingsOpen, status, confirmDelete, settings, libName, printScope, renameIdx, renameValue, renameMeta, folderOpen, booting, resumable, alertText, dictating, dictPartial, dictLevel, dictNote } = this.state;
+    const blocked = this.blocked();
+    const gated = !blocked && !folderOpen && !booting;
     const b = this.book(), cur = this.current();
-    const opt = (key, options) => options.map(([label, v]) => ({ label, pick: () => this.setSetting(key, v), bg: settings[key] === v ? '#000' : 'transparent', color: settings[key] === v ? '#fff' : '#525252' }));
+    const narrow = this.state.narrow, touch = narrow || this.hq.matches;
+    const opt = (key, options) => options.map(([label, v]) => ({ label, pick: () => this.setSetting(key, v), bg: settings[key] === v ? 'var(--fg)' : 'transparent', color: settings[key] === v ? 'var(--bg)' : 'var(--muted)' }));
     const settingRows = [
       { label: 'Font', options: opt('font', [['Sans', 'sans'], ['Serif', 'serif'], ['Mono', 'mono'], ['Courier', 'courier']]) },
       { label: 'Size', options: opt('size', [['16', 16], ['18', 18], ['20', 20], ['22', 22]]) },
-      { label: 'Typewriter scroll', options: opt('typewriter', [['On', true], ['Off', false]]) },
-      { label: 'Dim other paragraphs', options: opt('dim', [['On', true], ['Off', false]]) },
-      { label: 'Receipt width', options: opt('roll', [['58mm', 58], ['80mm', 80]]) }
+      { label: 'Theme', options: opt('theme', [['System', 'system'], ['Light', 'light'], ['Dark', 'dark']]) }
     ];
+    const rollOpts = [['58mm', 58], ['80mm', 80]].map(([label, v]) => ({ label, pick: () => this.setState({ printRoll: v }), bg: this.state.printRoll === v ? 'var(--fg)' : 'transparent', color: this.state.printRoll === v ? 'var(--bg)' : 'var(--muted)' }));
     const chapters = b ? b.chapters.map((c, i) => ({
       num: String(i + 1).padStart(2, '0'), title: c.title || 'Untitled', words: this.words(c.text).toLocaleString(),
-      color: cur && cur.id === c.id ? '#000' : '#525252', weight: cur && cur.id === c.id ? 500 : 400, bg: cur && cur.id === c.id ? '#f5f5f5' : 'transparent',
-      open: () => this.setState({ currentId: c.id }),
+      color: cur && cur.id === c.id ? 'var(--fg)' : 'var(--muted)', weight: cur && cur.id === c.id ? 500 : 400, bg: cur && cur.id === c.id ? 'var(--fill)' : 'transparent',
+      open: () => this.setState({ currentId: c.id, drawer: false }),
       onDragStart: () => { this.dragId = c.id; }, onDragOver: e => e.preventDefault(), onDrop: e => { e.preventDefault(); this.move(this.dragId, c.id); this.dragId = null; }
     })) : [];
     return {
-      gated, resumable, looseAlert, openBookSettings: this.openBookSettings, renameGoal: String(renameMeta.wordGoal == null ? '' : renameMeta.wordGoal), onGoalChange: this.onGoalChange,
-      colorOpts: this.palette.map(c => ({ bg: c || '#fff', border: (renameMeta.color || '') === c ? '#000' : '#e5e7eb', pick: () => this.pickColor(c) })), gateAction: resumable ? this.resume : this.open, gateLabel: resumable ? 'Resume' : 'Open folder',
-      isFull: isFull && folderOpen, notFull: !isFull || !folderOpen, fullPadTop: settings.typewriter ? '45vh' : '96px', showShelf: folderOpen && !isFull && !b, showBook: folderOpen && !isFull && !!b,
+      blocked, gated, resumable, alertOpen: !!alertText, alertText, swallow: this.swallow, toggleDictation: this.toggleDictation,
+      dictating: !!dictating && folderOpen, dictLive: dictPartial || dictNote || (dictating === 'starting' ? 'Starting' : 'Listening'), dictLiveColor: dictPartial ? 'var(--fg)' : 'var(--faint)', dictDotAnim: dictLevel > 0.05 ? 'none' : 'wr-pulse 1.4s ease-in-out infinite', dictDotScale: (1 + dictLevel * 1.2).toFixed(2), dictColor: dictating ? 'var(--fg)' : 'var(--faint)', dictIconColor: dictating ? 'var(--fg)' : 'var(--muted)', dictIconBg: dictating ? 'var(--fill)' : 'transparent',
+      openBookSettings: () => { this.setState({ drawer: false }); this.openBookSettings(); }, renameGoal: String(renameMeta.wordGoal == null ? '' : renameMeta.wordGoal), onGoalChange: this.onGoalChange,
+      colorOpts: this.palette.map(c => ({ bg: c || 'var(--bg)', border: (renameMeta.color || '') === c ? 'var(--fg)' : 'var(--line)', pick: () => this.pickColor(c) })), gateAction: resumable ? this.resume : this.open, gateLabel: resumable ? 'Resume' : 'Open folder',
+      isFull: isFull && folderOpen, notFull: !isFull || !folderOpen, fullPadTop: settings.typewriter ? '45vh' : '96px', showShelf: folderOpen && !isFull && !b && !this.state.tplScreen, showBook: folderOpen && !isFull && !!b,
+      showTemplates: folderOpen && !isFull && !b && this.state.tplScreen && !this.state.tplEdit, showTplEdit: folderOpen && !isFull && !b && this.state.tplScreen && !!this.state.tplEdit,
+      openTemplates: this.openTemplates, backFromTemplates: this.backFromTemplates, backToTemplates: this.backToTemplates, newTemplate: this.newTemplate, deleteCurrentTemplate: this.deleteCurrentTemplate,
+      tplList: this.state.templates.map(t => ({ name: t.name, words: this.words(t.text).toLocaleString(), open: () => this.openTemplate(t), del: () => this.askDeleteTemplate(t) })), emptyTemplates: !this.state.templates.length,
+      tplWords: this.state.tplEdit && cur ? this.words(cur.text).toLocaleString() : '',
       printMenu: printMenu && folderOpen, settingsOpen: settingsOpen && folderOpen, status, settingRows,
       noFolder: !libName, hasFolder: !!libName, libName: libName || 'None', folderBtn: libName ? 'Change' : 'Choose',
-      logOut: this.logOut, syncLabel: this.libHandle ? (this.dirty.size ? this.dirty.size + ' unsaved' : 'Folder') : 'Reopen folder to sync', sync: this.sync,
+      logOut: this.logOut, syncLabel: this.libHandle ? (this.dirty.size + this.dirtyTpl.size ? (this.dirty.size + this.dirtyTpl.size) + ' unsaved' : 'Folder') : 'Reopen folder to sync', sync: this.sync,
       confirmDelete, askDelete: this.askDelete, askDeleteBook: this.askDeleteBook,
-      deleteTitle: this.state.confirmBook ? (books[renameIdx] ? books[renameIdx].name : '') : (cur ? (cur.title || 'Untitled') : ''),
-      confirmDeleteAction: this.state.confirmBook ? this.deleteBook : this.deleteChapter,
+      deleteTitle: this.state.confirmTpl ? (this.state.templates.find(t => t.file === this.state.confirmTpl) || {}).name || '' : this.state.confirmBook ? (books[renameIdx] ? books[renameIdx].name : '') : (cur ? (cur.title || 'Untitled') : ''),
+      confirmDeleteAction: this.state.confirmTpl ? this.deleteTemplate : this.state.confirmBook ? this.deleteBook : this.deleteChapter,
+      tplPickOpen: this.state.tplPick, tplSaveOpen: this.state.tplSave, tplName: this.state.tplName, tplRef: this.tplRef, blankChapter: this.blankChapter,
+      tplDropOpen: this.state.tplDrop, toggleTplDrop: this.toggleTplDrop, closeTplDrop: this.closeTplDrop, createChapter: this.createChapter, tplDropBorder: this.state.tplDrop ? 'var(--fg)' : 'var(--line)',
+      tplChoiceLabel: (this.state.templates.find(t => t.file === this.state.tplChoice) || { name: 'Blank' }).name,
+      tplOptions: [{ file: '', name: 'Blank' }, ...this.state.templates].map(t => ({ label: t.name, pick: e => { e.stopPropagation(); this.pickTpl(t.file); }, bg: t.file === this.state.tplChoice ? 'var(--fill)' : 'transparent', color: t.file === this.state.tplChoice ? 'var(--fg)' : 'var(--muted)' })),
+      openTplSave: this.openTplSave, onTplNameChange: this.onTplNameChange, onTplNameKey: this.onTplNameKey, saveTemplate: this.saveTemplate,
       emptyShelf: !books.length, renaming: folderOpen && (renameIdx >= 0 || renameIdx === -2), renamingExisting: renameIdx >= 0, renameValue, renameRef: this.renameRef,
-      books: books.map((x, i) => { const w = x.chapters.reduce((n, c) => n + this.words(c.text), 0), g = (x.meta || {}).wordGoal; return { name: x.name, spine: (x.meta || {}).color || '#f5f5f5', meta: x.chapters.length + (x.chapters.length === 1 ? ' chapter · ' : ' chapters · ') + w.toLocaleString() + (g ? ' / ' + g.toLocaleString() : '') + ' words', open: () => this.openBook(i), rename: () => this.startRename(i) }; }),
+      books: books.map((x, i) => { const w = x.chapters.reduce((n, c) => n + this.words(c.text), 0), g = (x.meta || {}).wordGoal; return { name: x.name, spine: (x.meta || {}).color || 'var(--fill)', meta: x.chapters.length + (x.chapters.length === 1 ? ' chapter · ' : ' chapters · ') + w.toLocaleString() + (g ? ' / ' + g.toLocaleString() : '') + ' words', open: () => this.openBook(i), rename: () => this.startRename(i) }; }),
       bookTitle: b ? b.name : '',
       chapters, chapterWords: cur ? this.words(cur.text).toLocaleString() : '', bookWords: b ? b.chapters.reduce((n, c) => n + this.words(c.text), 0).toLocaleString() : '',
       wordsLabel: (() => { if (!cur || !b) return ''; const cw = this.words(cur.text), bw = b.chapters.reduce((n, c) => n + this.words(c.text), 0), g = (b.meta || {}).wordGoal; const bl = bw.toLocaleString() + (g ? ' / ' + g.toLocaleString() : ''); return b.chapters.length > 1 || g ? cw.toLocaleString() + ' · ' + bl : cw.toLocaleString(); })(),
       editorRef: this.editorRef, titleRef: this.titleRef, contentFont: this.fontFamily(), scrollRef: this.scrollRef, fileInputRef: this.fileInputRef,
       onInput: this.onInput, onPaste: this.onPaste, onTitleBlur: this.onTitleBlur, onTitleKey: this.onTitleKey,
-      open: this.open, newBook: this.newBook, newChapter: this.newChapter, deleteChapter: this.deleteChapter, print: this.print, closeMenus: this.closeMenus, closeAlert: this.closeAlert, stop: this.stop, openSettings: this.openSettings,
-      backToShelf: this.backToShelf, onRenameChange: this.onRenameChange, onRenameKey: this.onRenameKey, commitRename: this.commitRename, cancelRename: this.cancelRename,
+      open: this.open, newBook: this.newBook, newChapter: () => { this.setState({ drawer: false }); this.newChapter(); }, deleteChapter: this.deleteChapter, print: this.print, closeMenus: this.closeMenus, closeAlert: this.closeAlert, stop: this.stop, openSettings: () => { this.setState({ drawer: false }); this.openSettings(); },
+      backToShelf: () => { this.setState({ drawer: false }); this.backToShelf(); }, onRenameChange: this.onRenameChange, onRenameKey: this.onRenameKey, commitRename: this.commitRename, cancelRename: this.cancelRename,
       hoverToolsOn: () => { clearTimeout(this.toolsTimer); this.setState({ hoverTools: true }); },
       hoverToolsOff: () => { clearTimeout(this.toolsTimer); this.toolsTimer = setTimeout(() => this.setState({ hoverTools: false }), 600); },
-      toolsOpacity: this.state.hoverTools || this.state.findOpen ? 1 : 0,
+      toolsOpacity: touch || this.state.hoverTools || this.state.findOpen ? 1 : 0,
       findOpen: this.state.findOpen, find: this.state.find, findRef: this.findRef, toggleFind: this.toggleFind, onFindChange: this.onFindChange, onFindKey: this.onFindKey, findPrev: this.findPrev, findNext: this.findNext,
       findLabel: this.state.find ? (this.state.findCount ? (this.state.findIdx + 1) + '/' + this.state.findCount : '0') : '',
-      findIconColor: this.state.findOpen ? '#000' : '#525252',
+      findIconColor: this.state.findOpen ? 'var(--fg)' : 'var(--muted)',
       hoverTitleOn: () => { clearTimeout(this.titleTimer); this.setState({ hoverTitle: true }); },
       hoverTitleOff: () => { clearTimeout(this.titleTimer); this.titleTimer = setTimeout(() => this.setState({ hoverTitle: false }), 600); },
-      railCollapsed: this.state.railCollapsed, railOpen: !this.state.railCollapsed, railWidth: this.state.railCollapsed ? '56px' : '280px',
+      railCollapsed: !narrow && this.state.railCollapsed, railOpen: narrow ? !!this.state.drawer : !this.state.railCollapsed, railWidth: narrow ? '0px' : this.state.railCollapsed ? '56px' : '280px',
+      eyebrow: narrow || this.state.railCollapsed, mobileBar: narrow && !this.state.drawer, drawerOpen: narrow && !!this.state.drawer, openDrawer: () => this.setState({ drawer: true }), closeDrawer: () => this.setState({ drawer: false }),
       notesOpen: this.state.notesOpen, notes: cur ? (cur.notes || '') : '', notesRef: this.notesRef, toggleNotes: this.toggleNotes, onNotesChange: this.onNotesChange,
-      notesWidth: this.state.notesOpen ? '300px' : '0px', wordsRight: this.state.notesOpen ? '320px' : '20px', notesIconColor: this.state.notesOpen || (cur && (cur.notes || '').trim()) ? '#000' : '#525252',
-      gridCols: (this.state.railCollapsed ? '56px' : '280px') + ' minmax(0,1fr)' + (this.state.notesOpen ? ' 300px' : ''),
+      notesWidth: this.state.notesOpen && !narrow ? '300px' : '0px', wordsRight: ((this.state.notesOpen && !isFull && !narrow ? 320 : 20) + (dictating ? 88 : 0)) + 'px', fullWordsRight: (dictating ? 108 : 20) + 'px', dictStopRight: this.state.notesOpen && !isFull && !narrow ? '320px' : '20px', notesIconColor: this.state.notesOpen || (cur && (cur.notes || '').trim()) ? 'var(--fg)' : 'var(--muted)',
+      gridCols: narrow ? 'minmax(0,1fr)' : (this.state.railCollapsed ? '56px' : '280px') + ' minmax(0,1fr)' + (this.state.notesOpen ? ' 300px' : ''),
       toggleRail: () => this.setState(s => { const v = !s.railCollapsed; try { localStorage.setItem('writer.rail', v ? 'min' : 'max'); } catch (e) {} return { railCollapsed: v }; }),
-      titleIconOpacity: this.state.hoverTitle ? 1 : 0,
-      printChapter: this.printChapter, printBook: this.printBook, downloadChapter: this.downloadChapter, downloadBook: this.downloadBook, printReceipt: this.printReceipt, printPaper: this.printPaper,
+      titleIconOpacity: touch || this.state.hoverTitle ? 1 : 0,
+      printChapter: this.printChapter, printBook: () => { this.setState({ drawer: false }); this.printBook(); }, downloadChapter: this.downloadChapter, downloadBook: this.downloadBook, printReceipt: this.printReceipt, printPaper: this.printPaper,
       printScopeLabel: printScope === 'chapter' ? 'Print Chapter' : 'Print Book',
-      togglePageNums: () => this.setSetting('pageNums', !settings.pageNums), pageNumsBg: settings.pageNums ? '#000' : '#fff',
+      togglePageNums: () => this.setSetting('pageNums', !settings.pageNums), pageNumsBg: settings.pageNums ? 'var(--fg)' : 'var(--bg)', rollOpts,
+      toggleTypewriter: () => this.toggleAid('typewriter'), toggleDim: () => this.toggleAid('dim'), typewriterColor: settings.typewriter ? 'var(--fg)' : 'var(--faint)', dimColor: settings.dim ? 'var(--fg)' : 'var(--faint)',
       enterFull: this.enterFull, exitFull: this.exitFull, onFilesPicked: this.onFilesPicked
     };
   }

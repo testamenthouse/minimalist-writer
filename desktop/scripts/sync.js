@@ -30,4 +30,5 @@ fs.copyFileSync(path.join(handoff, 'support.js'), path.join(app, 'support.js'));
 for (const f of fs.readdirSync(path.join(root, 'vendor', 'inter'))) fs.copyFileSync(path.join(root, 'vendor', 'inter', f), path.join(fonts, f));
 const vendor = path.join(app, 'vendor'); fs.mkdirSync(vendor, { recursive: true });
 for (const f of fs.readdirSync(path.join(root, 'vendor', 'react'))) fs.copyFileSync(path.join(root, 'vendor', 'react', f), path.join(vendor, f));
-console.log('synced handoff → desktop/app');
+require('child_process').execSync('node scripts/build-dictate.js', { cwd: root, stdio: 'inherit' });
+console.log('synced handoff → desktop/app + dictate');
