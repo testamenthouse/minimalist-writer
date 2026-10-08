@@ -4,11 +4,10 @@
   "version": "0.1.1",
   "private": true,
   "description": "Writer",
-  "author": "Brian Fegter",
   "main": "src/main.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/OWNER/minimalist-writer.git"
+    "url": "https://github.com/testamenthouse/minimalist-writer.git"
   },
   "scripts": {
     "sync": "node scripts/sync.js",
