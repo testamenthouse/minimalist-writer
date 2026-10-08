@@ -3,6 +3,7 @@
   "productName": "Writer",
   "version": "0.1.1",
   "private": true,
+  "license": "GPL-3.0-only",
   "description": "Writer",
   "main": "src/main.js",
   "repository": {

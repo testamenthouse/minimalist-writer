@@ -1,10 +1,10 @@
 # Writer — desktop
 
-Electron shell around `../index.html` (+ `../support.js`). The root page stays the only source of the UI;
+Electron shell around `../index.html` (+ `../support.js`). The main process owns the library: native folder picker, path remembered in `userData/config.json` (`~/Library/Application Support/Writer/config.json`), `fs.watch` recursive → `lib:changed`, atomic writes, every path checked to stay inside the library, `shell.showItemInFolder` for Show in Finder. `src/preload.js` exposes it as `window.writer`, the same interface as the page's browser adapter (`FS` in `index.html`). The root page stays the only source of the UI;
 `npm run sync` copies it into `./app` (Google Fonts link swapped for the bundled Inter) before every run or build.
 
 - `npm start` — run locally.
-- `npm run smoke` — headless load check (prints `SMOKE {...}` and exits).
+- `npm run smoke` — headless load check (prints `SMOKE {...}` and exits; uses a throwaway `userData`). `WRITER_SMOKE_LIB=<folder> npm run smoke` boots into that folder through the bridge and prints its file list.
 - `npm run dist` — build into `dist/` without publishing. macOS is Apple Silicon only: a `Writer-<version>-mac-arm64.dmg` installer, which `scripts/zip-dmg.js` then wraps as `Writer-<version>-mac-arm64.dmg.zip` (the download to hand out). No Intel or universal build, no app zip.
 - `npm run release` — build and publish to the GitHub release for the current version (run from your own machine; the workflow in `.github/workflows` is manual-only).
 

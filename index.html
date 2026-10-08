@@ -182,6 +182,9 @@ a{color:var(--fg)}a:hover{color:var(--muted)}
       </div>
       <sc-if value="{{ renamingExisting }}" hint-placeholder-val="{{ false }}">
         <div style="padding-top:10px;border-top:1px solid var(--line)">
+          <sc-if value="{{ canReveal }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ revealBook }}" style="display:block;width:100%;background:none;border:0;padding:8px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px;text-align:center" style-hover="color:var(--fg);background:var(--fill)">{{ revealLabel }}</button>
+          </sc-if>
           <button onClick="{{ askDeleteBook }}" style="display:block;width:100%;background:none;border:0;padding:8px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px;text-align:center" style-hover="color:var(--fg);background:var(--fill)">Delete book</button>
         </div>
       </sc-if>
@@ -548,6 +551,52 @@ const Dictation = {
     };
   }
 };
+// ---- FS: the folder adapter. The Mac app's preload exposes window.writer (paths resolved in the main process, Node fs);
+// the browser falls back to the File System Access API with the folder handle in IndexedDB. Same interface either way:
+// relative, forward-slashed paths; list() is one recursive walk (name + mtime + size, no reads); nothing else is cached.
+const FS = (() => {
+  if (window.writer) return { kind: 'electron', supported: true, ...window.writer, resumeClick: window.writer.resume, ensureWrite: async () => true };
+  const DB = 'writer', STORE = 'kv', KEY = 'lib';
+  let root = null;
+  const idb = () => new Promise((res, rej) => { const r = indexedDB.open(DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const kv = async (op, val) => { const db = await idb(); return new Promise((res, rej) => { const tx = db.transaction(STORE, 'readwrite'), st = tx.objectStore(STORE); const r = op === 'get' ? st.get(KEY) : op === 'put' ? st.put(val, KEY) : st.delete(KEY); tx.oncomplete = () => { db.close(); res(r.result); }; tx.onerror = () => { db.close(); rej(tx.error); }; }); };
+  const dir = async (p, create) => { let h = root; for (const part of (p || '').split('/').filter(Boolean)) h = await h.getDirectoryHandle(part, { create: !!create }); return h; };
+  const split = p => { const i = p.lastIndexOf('/'); return i < 0 ? ['', p] : [p.slice(0, i), p.slice(i + 1)]; };
+  const walk = async (h, prefix, out) => { for await (const [name, entry] of h.entries()) { if (name.startsWith('.')) continue; const p = prefix ? prefix + '/' + name : name; if (entry.kind === 'directory') { out.push({ path: p, kind: 'dir', mtime: 0, size: 0 }); await walk(entry, p, out); } else { const f = await entry.getFile(); out.push({ path: p, kind: 'file', mtime: f.lastModified, size: f.size }); } } };
+  const copyDir = async (from, to) => { for await (const [name, entry] of from.entries()) { if (entry.kind === 'directory') await copyDir(entry, await to.getDirectoryHandle(name, { create: true })); else { const f = await entry.getFile(), fh = await to.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(await f.arrayBuffer()); await w.close(); } } };
+  const fsa = {
+    kind: 'fsa', supported: typeof window.showDirectoryPicker === 'function',
+    async pick() { let h; try { h = await window.showDirectoryPicker({ mode: 'readwrite' }); } catch (e) { if (e.name === 'AbortError') return null; throw e; } root = h; try { await kv('put', h); } catch (e) {} return { name: h.name }; },
+    async resume() {
+      let h; try { h = await kv('get'); } catch (e) { h = null; }
+      if (!h || typeof h.queryPermission !== 'function') return null;
+      const p = await h.queryPermission({ mode: 'readwrite' }).catch(() => 'denied');
+      if (p === 'granted') { root = h; try { await h.entries().next(); } catch (e) { root = null; try { await kv('del'); } catch (e2) {} return { error: 'Folder not found' }; } return { name: h.name }; }
+      return p === 'prompt' ? 'prompt' : null;
+    },
+    async resumeClick() { let h; try { h = await kv('get'); } catch (e) { return null; } if (!h) return null; try { if (await h.requestPermission({ mode: 'readwrite' }) === 'granted') { root = h; return { name: h.name }; } } catch (e) {} return null; },
+    async forget() { root = null; try { await kv('del'); } catch (e) {} },
+    async ensureWrite() { if (!root) return false; try { if (await root.queryPermission({ mode: 'readwrite' }) === 'granted') return true; return await root.requestPermission({ mode: 'readwrite' }) === 'granted'; } catch (e) { return false; } },
+    async list() { const out = []; await walk(root, '', out); return out; },
+    async read(p) { const [d, n] = split(p); const fh = await (await dir(d)).getFileHandle(n); return (await fh.getFile()).text(); },
+    async write(p, text) { const [d, n] = split(p); const fh = await (await dir(d, true)).getFileHandle(n, { create: true }), w = await fh.createWritable(); await w.write(text); await w.close(); },
+    async remove(p) { const [d, n] = split(p); await (await dir(d)).removeEntry(n, { recursive: true }); },
+    async rename(from, to) {
+      const [fd, fn] = split(from), [td, tn] = split(to), src = await dir(fd);
+      let entry; try { entry = await src.getFileHandle(fn); } catch (e) { entry = await src.getDirectoryHandle(fn); }
+      if (entry.kind === 'file') { const f = await entry.getFile(); const fh = await (await dir(td, true)).getFileHandle(tn, { create: true }), w = await fh.createWritable(); await w.write(await f.arrayBuffer()); await w.close(); }
+      else await copyDir(entry, await (await dir(td, true)).getDirectoryHandle(tn, { create: true }));
+      await src.removeEntry(fn, { recursive: true });
+    },
+    async mkdir(p) { await dir(p, true); },
+    watch: null, reveal: null, async libraryPath() { return ''; },
+    // Headless QA: hand the adapter a directory handle (e.g. OPFS root) without the picker.
+    __setLibrary(h) { root = h; }
+  };
+  return fsa;
+})();
+window.__wr = Object.assign(window.__wr || {}, { fs: FS });
+
 class Component extends DCLogic {
   state = {
     libName: '', books: [], bookIdx: -1, currentId: null, folderOpen: false, booting: true, resumable: false,
@@ -558,7 +607,7 @@ class Component extends DCLogic {
     narrow: window.matchMedia('(max-width: 760px)').matches, drawer: false
   };
   editorRef = React.createRef(); titleRef = React.createRef(); scrollRef = React.createRef(); fileInputRef = React.createRef(); renameRef = React.createRef(); tplRef = React.createRef(); findRef = React.createRef(); notesRef = React.createRef(); findRanges = [];
-  libHandle = null; noFs = false; dragId = null; dict = null; dictTarget = Dictation.inserter(() => this.editorRef.current); dirty = new Set(); dirtyTpl = new Set(); saveTimer = null; needPerm = false; lastCfg = null; writing = 0; sigs = null; watchTimer = null; lastInput = 0; caretEnd = false;
+  lib = null; unwatch = null; tplDirName = 'Templates'; noFs = false; dragId = null; dict = null; dictTarget = Dictation.inserter(() => this.editorRef.current); dirty = new Set(); dirtyTpl = new Set(); saveTimer = null; needPerm = false; lastCfg = null; writing = 0; sigs = null; watchTimer = null; lastInput = 0; caretEnd = false;
   palette = ['', '#d9d9d9', '#f5c2c2', '#f8d9a8', '#f6e7a1', '#c8e6c9', '#bfe0f5', '#d6ccf2', '#f5c8e2'];
 
   componentDidMount() {
@@ -766,11 +815,11 @@ class Component extends DCLogic {
       return { books, ...r, ...(extra ? extra(books, s) : {}) };
     }, this.persist);
   }
-  async readConfig(lib) {
-    try { const fh = await lib.getFileHandle('writer.json'); const cfg = JSON.parse(await (await fh.getFile()).text()); return cfg && typeof cfg === 'object' ? cfg : null; } catch (e) { return null; }
+  async readConfig() {
+    try { const cfg = JSON.parse(await FS.read('writer.json')); return cfg && typeof cfg === 'object' ? cfg : null; } catch (e) { return null; }
   }
-  async applyConfig(lib) {
-    const cfg = await this.readConfig(lib);
+  async applyConfig() {
+    const cfg = await this.readConfig();
     this.lastCfg = null;
     if (cfg && cfg.settings && typeof cfg.settings === 'object') {
       const settings = { ...this.state.settings, ...cfg.settings };
@@ -779,11 +828,11 @@ class Component extends DCLogic {
     }
   }
   writeConfig = async () => {
-    const lib = this.libHandle; if (!lib || typeof lib.getFileHandle !== 'function') return;
+    if (!this.lib) return;
     const json = JSON.stringify({ settings: this.state.settings });
     if (json === this.lastCfg) return; this.lastCfg = json;
     this.writing++;
-    try { const fh = await lib.getFileHandle('writer.json', { create: true }), w = await fh.createWritable(); await w.write(JSON.stringify({ settings: this.state.settings }, null, 2) + '\n'); await w.close(); if (this.sigs) { const f = await fh.getFile(); this.sigs.set('', f.lastModified + ':' + f.size); } }
+    try { await FS.write('writer.json', JSON.stringify({ settings: this.state.settings }, null, 2) + '\n'); await this.refreshSigs(''); }
     catch (e) { console.error(e); this.lastCfg = null; }
     finally { this.writing--; }
   };
@@ -794,16 +843,13 @@ class Component extends DCLogic {
     this.saveTimer = setTimeout(this.flushDisk, 800);
   };
   async ensureWrite() {
-    const h = this.libHandle; if (!h) return false; if (typeof h.queryPermission !== 'function') return true;
-    try {
-      if (await h.queryPermission({ mode: 'readwrite' }) === 'granted') return true;
-      if (await h.requestPermission({ mode: 'readwrite' }) === 'granted') return true;
-    } catch (e) {}
+    if (!this.lib) return false;
+    if (await FS.ensureWrite()) return true;
     this.needPerm = true; return false;
   }
-  onGesture = () => { if (this.needPerm && this.libHandle) { this.needPerm = false; this.ensureWrite().then(ok => { if (ok && this.dirty.size) this.flushDisk(); }); } };
+  onGesture = () => { if (this.needPerm && this.lib) { this.needPerm = false; this.ensureWrite().then(ok => { if (ok && this.dirty.size) this.flushDisk(); }); } };
   flushDisk = async () => {
-    if (!this.libHandle || (!this.dirty.size && !this.dirtyTpl.size)) return;
+    if (!this.lib || (!this.dirty.size && !this.dirtyTpl.size)) return;
     if (!await this.ensureWrite()) { this.flash('Save failed'); return; }
     const names = [...this.dirty], tpls = [...this.dirtyTpl]; this.dirty.clear(); this.dirtyTpl.clear();
     try {
@@ -817,20 +863,24 @@ class Component extends DCLogic {
     try { await this.writeBookFiles(b); } finally { this.writing--; }
   }
   async writeBookFiles(b) {
-    const dir = await this.libHandle.getDirectoryHandle(b.name, { create: true }), keep = new Set();
+    await FS.mkdir(b.name); const keep = new Set();
     for (let i = 0; i < b.chapters.length; i++) {
       const name = this.slug(i, b.chapters[i].title); keep.add(name);
-      const fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable();
-      await w.write(this.toMd(b.chapters[i])); await w.close();
+      await FS.write(b.name + '/' + name, this.toMd(b.chapters[i]));
       const notes = (b.chapters[i].notes || '').trim();
-      if (notes) { const nn = this.notesName(name); keep.add(nn); const nh = await dir.getFileHandle(nn, { create: true }), nw = await nh.createWritable(); await nw.write(this.nl(notes)); await nw.close(); }
+      if (notes) { const nn = this.notesName(name); keep.add(nn); await FS.write(b.name + '/' + nn, this.nl(notes)); }
     }
-    for await (const [name, entry] of dir.entries()) if (entry.kind === 'file' && /^\d{2}-.*\.md$/.test(name) && !keep.has(name)) await dir.removeEntry(name);
+    for (const f of await this.dirFiles(b.name)) if (/^\d{2}-.*\.md$/.test(f.name) && !keep.has(f.name)) await FS.remove(b.name + '/' + f.name);
     const mj = this.metaJson(b);
-    if (mj) { const mh = await dir.getFileHandle('book.json', { create: true }), mw = await mh.createWritable(); await mw.write(mj); await mw.close(); }
-    else { try { await dir.removeEntry('book.json'); } catch (e) {} }
-    if (this.sigs) this.sigs.set(b.name, await this.bookSig(dir));
+    if (mj) await FS.write(b.name + '/book.json', mj);
+    else { try { await FS.remove(b.name + '/book.json'); } catch (e) {} }
+    await this.refreshSigs(b.name);
   }
+  // One listing from the adapter feeds everything below: the files of one folder, the signatures, the library tree.
+  async dirFiles(dirPath, list) { const pre = dirPath ? dirPath + '/' : ''; return (list || await FS.list()).filter(e => e.kind === 'file' && e.path.startsWith(pre) && !e.path.slice(pre.length).includes('/')).map(e => ({ ...e, name: e.path.slice(pre.length) })); }
+  async refreshSigs(...keys) { if (!this.sigs) return; const fresh = this.sigsFrom(await FS.list()); if (!keys.length) { this.sigs = fresh; return; } for (const k of keys) { if (fresh.has(k)) this.sigs.set(k, fresh.get(k)); else this.sigs.delete(k); } }
+  tdir() { return this.tplDirName || 'Templates'; }
+  tplPath(list) { const d = list.find(e => e.kind === 'dir' && !e.path.includes('/') && this.isTplDir(e.path)); this.tplDirName = d ? d.path : 'Templates'; return this.tplDirName; }
   markDirty() { const b = this.book(); if (b) this.dirty.add(b.name); }
   flash(msg) { this.setState({ status: msg }); clearTimeout(this.flashTimer); this.flashTimer = setTimeout(() => this.setState({ status: '' }), 4000); }
 
@@ -877,7 +927,7 @@ class Component extends DCLogic {
       if (this.state.findOpen) { const i = this.findRef.current; if (i) { i.focus(); i.select(); } } else this.toggleFind();
     }
   };
-  saveNow = () => { if (this.state.tplEdit) { clearTimeout(this.saveTimer); this.flushDisk(); return; } const b = this.book(); if (!b) return; if (this.libHandle) { this.dirty.add(b.name); clearTimeout(this.saveTimer); this.flushDisk(); } else this.download(); };
+  saveNow = () => { if (this.state.tplEdit) { clearTimeout(this.saveTimer); this.flushDisk(); return; } const b = this.book(); if (!b) return; if (this.lib) { this.dirty.add(b.name); clearTimeout(this.saveTimer); this.flushDisk(); } else this.download(); };
   download() {
     const ch = this.current(), b = this.book(); if (!ch) return;
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([this.toMd(ch)], { type: 'text/markdown' }));
@@ -914,7 +964,7 @@ class Component extends DCLogic {
   logOut = async () => {
     this.stopDictation(); clearTimeout(this.saveTimer); await this.flushDisk();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    this.stopWatch(); this.sigs = null; this.libHandle = null; this.dirty.clear(); this.dirtyTpl.clear(); await this.forget();
+    this.stopWatch(); this.sigs = null; this.lib = null; this.dirty.clear(); this.dirtyTpl.clear(); await FS.forget();
     this.setState({ folderOpen: false, resumable: false, libName: '', books: [], templates: [], bookIdx: -1, currentId: null, isFull: false, settingsOpen: false, printMenu: false, confirmDelete: false, findOpen: false, renameIdx: -1, tplPick: false, tplSave: false, tplScreen: false, tplEdit: '', status: '' });
   };
   setSetting(k, v) { this.setState(s => ({ settings: { ...s.settings, [k]: v } }), this.persist); }
@@ -947,7 +997,7 @@ class Component extends DCLogic {
       if (!t) return this.cancelRename();
       if (this.isTplDir(t) || this.state.books.some(x => x.name === t)) return this.flash('Name in use');
       const b = { name: t, chapters: [{ id: 'c' + Date.now(), title: '', text: '' }], meta };
-      if (this.libHandle) {
+      if (this.lib) {
         if (!await this.ensureWrite()) { this.flash('Could not create'); return; }
         try { await this.writeBook(b); } catch (e) { console.error(e); this.flash('Could not create'); return; }
       }
@@ -957,10 +1007,10 @@ class Component extends DCLogic {
     const b = this.state.books[i]; if (!b) return;
     if (!t) return this.cancelRename();
     if (t !== b.name && (this.isTplDir(t) || this.state.books.some((x, j) => j !== i && x.name === t))) return this.flash('Name in use');
-    if (this.libHandle) {
+    if (this.lib) {
       if (!await this.ensureWrite()) { this.flash('Rename failed'); return; }
       this.writing++;
-      try { await this.writeBook({ ...b, name: t, meta }); if (t !== b.name) { await this.libHandle.removeEntry(b.name, { recursive: true }); if (this.sigs) this.sigs.delete(b.name); } } catch (e) { console.error(e); this.flash('Rename failed'); return; } finally { this.writing--; }
+      try { if (t !== b.name) { await FS.rename(b.name, t); if (this.sigs) this.sigs.delete(b.name); } await this.writeBook({ ...b, name: t, meta }); } catch (e) { console.error(e); this.flash('Rename failed'); return; } finally { this.writing--; }
       this.dirty.delete(b.name);
     }
     this.update(books => { books[i].name = t; books[i].meta = meta; return { renameIdx: -1 }; });
@@ -992,31 +1042,31 @@ class Component extends DCLogic {
     return { file, name, text: (m ? text.slice(m[0].length) : text).replace(/\s+$/, ''), rev: Date.now() };
   }
   sortTpl(list) { return list.sort((a, b) => a.name.localeCompare(b.name)); }
-  async readTemplates(lib) {
-    let dir; try { dir = await lib.getDirectoryHandle('Templates'); } catch (e) { return []; }
-    return this.sortTpl((await this.readFiles(dir)).filter(f => /\.(md|txt)$/i.test(f.name)).map(f => this.tplFromMd(f.name, f.text)));
+  async readTemplates(list) {
+    list = list || await FS.list(); const d = this.tplPath(list), out = [];
+    for (const f of await this.dirFiles(d, list)) if (/\.(md|txt)$/i.test(f.name)) out.push(this.tplFromMd(f.name, await FS.read(d + '/' + f.name)));
+    return this.sortTpl(out);
   }
-  async tplSig(lib) { try { return await this.bookSig(await lib.getDirectoryHandle('Templates')); } catch (e) { return ''; } }
   openTplSave = () => {
     const cur = this.current(); if (!cur) return;
-    if (!this.libHandle) { this.flash('Open the folder in Chrome or Edge to save templates'); return; }
+    if (!this.lib) { this.flash('Open the folder in Chrome or Edge to save templates'); return; }
     this.setState({ tplSave: true, tplName: cur.title || '' });
     setTimeout(() => { const r = this.tplRef.current; if (r) { r.focus(); r.select(); } }, 50);
   };
   onTplNameChange = e => this.setState({ tplName: e.target.value });
   onTplNameKey = e => { if (e.key === 'Enter') this.saveTemplate(); if (e.key === 'Escape') this.closeMenus(); };
-  async writeTplFile(dir, t) { const fh = await dir.getFileHandle(t.file, { create: true }), w = await fh.createWritable(); await w.write(this.nl('# ' + t.name + '\n\n' + (t.text || ''))); await w.close(); }
+  async writeTplFile(t) { await FS.write(this.tdir() + '/' + t.file, this.nl('# ' + t.name + '\n\n' + (t.text || ''))); }
   async writeTemplates(files) {
     this.writing++;
     try {
-      const dir = await this.libHandle.getDirectoryHandle('Templates', { create: true });
-      for (const f of files) { const t = this.state.templates.find(x => x.file === f); if (t) await this.writeTplFile(dir, t); }
-      if (this.sigs) this.sigs.set('Templates/', await this.bookSig(dir));
+      await FS.mkdir(this.tdir());
+      for (const f of files) { const t = this.state.templates.find(x => x.file === f); if (t) await this.writeTplFile(t); }
+      await this.refreshSigs('Templates/');
     } finally { this.writing--; }
   }
   saveTemplate = async () => {
     const fromScreen = this.state.tplScreen, cur = fromScreen ? null : this.current(), name = this.state.tplName.trim().replace(/[\\/:*?"<>|]/g, '');
-    if (!this.libHandle || (!fromScreen && !cur)) return;
+    if (!this.lib || (!fromScreen && !cur)) return;
     if (!name) return this.closeMenus();
     const file = this.tplFile(name);
     if (this.state.templates.some(t => t.name.toLowerCase() === name.toLowerCase() || t.file === file)) return this.flash('Name in use');
@@ -1024,9 +1074,7 @@ class Component extends DCLogic {
     if (!await this.ensureWrite()) { this.flash('Save failed'); return; }
     this.writing++;
     try {
-      const dir = await this.libHandle.getDirectoryHandle('Templates', { create: true });
-      await this.writeTplFile(dir, t);
-      if (this.sigs) this.sigs.set('Templates/', await this.bookSig(dir));
+      await FS.mkdir(this.tdir()); await this.writeTplFile(t); await this.refreshSigs('Templates/');
     } catch (e) { console.error(e); this.flash('Save failed'); return; } finally { this.writing--; }
     this.setState(s => ({ templates: this.sortTpl([...s.templates, t]), tplSave: false, tplName: '', tplEdit: fromScreen ? file : s.tplEdit }));
     if (fromScreen) setTimeout(() => { const ed = this.editorRef.current; if (ed) ed.focus(); }, 50); else this.flash('Template saved');
@@ -1037,7 +1085,7 @@ class Component extends DCLogic {
   backToTemplates = () => { clearTimeout(this.saveTimer); this.flushDisk(); this.setState({ tplEdit: '' }); };
   openTemplate(t) { this.setState({ tplEdit: t.file }); }
   newTemplate = () => {
-    if (!this.libHandle) { this.flash('Open the folder in Chrome or Edge to save templates'); return; }
+    if (!this.lib) { this.flash('Open the folder in Chrome or Edge to save templates'); return; }
     this.setState({ tplSave: true, tplName: '' });
     setTimeout(() => { const r = this.tplRef.current; if (r) r.focus(); }, 50);
   };
@@ -1051,14 +1099,13 @@ class Component extends DCLogic {
     const file = this.tplFile(name);
     if (this.state.templates.some(x => x.file !== t.file && (x.name.toLowerCase() === name.toLowerCase() || x.file === file))) { this.flash('Name in use'); this.setState({}); return; }
     const nt = { ...t, file, name };
-    if (this.libHandle) {
+    if (this.lib) {
       if (!await this.ensureWrite()) { this.flash('Save failed'); this.setState({}); return; }
       this.writing++;
       try {
-        const dir = await this.libHandle.getDirectoryHandle('Templates', { create: true });
-        await this.writeTplFile(dir, nt);
-        if (file !== t.file) { try { await dir.removeEntry(t.file); } catch (e) {} }
-        if (this.sigs) this.sigs.set('Templates/', await this.bookSig(dir));
+        await FS.mkdir(this.tdir()); await this.writeTplFile(nt);
+        if (file !== t.file) { try { await FS.remove(this.tdir() + '/' + t.file); } catch (e) {} }
+        await this.refreshSigs('Templates/');
       } catch (e) { console.error(e); this.flash('Save failed'); this.setState({}); return; } finally { this.writing--; }
     }
     this.dirtyTpl.delete(t.file);
@@ -1068,10 +1115,10 @@ class Component extends DCLogic {
   askDeleteTemplate(t) { this.setState({ confirmDelete: true, confirmBook: false, confirmTpl: t.file }); }
   deleteTemplate = async () => {
     const t = this.state.templates.find(x => x.file === this.state.confirmTpl); this.setState({ confirmDelete: false, confirmTpl: '' }); if (!t) return;
-    if (this.libHandle) {
+    if (this.lib) {
       if (!await this.ensureWrite()) { this.flash('Delete failed'); return; }
       this.writing++;
-      try { const dir = await this.libHandle.getDirectoryHandle('Templates'); await dir.removeEntry(t.file); if (this.sigs) this.sigs.set('Templates/', await this.bookSig(dir)); }
+      try { await FS.remove(this.tdir() + '/' + t.file); await this.refreshSigs('Templates/'); }
       catch (e) { console.error(e); this.flash('Delete failed'); return; } finally { this.writing--; }
     }
     this.dirtyTpl.delete(t.file);
@@ -1082,7 +1129,7 @@ class Component extends DCLogic {
   deleteBook = async () => {
     const i = this.state.renameIdx, b = this.state.books[i]; if (!b) return;
     this.setState({ confirmDelete: false });
-    if (this.libHandle) { if (!await this.ensureWrite()) { this.flash('Delete failed'); return; } this.writing++; try { await this.libHandle.removeEntry(b.name, { recursive: true }); if (this.sigs) this.sigs.delete(b.name); } catch (e) { console.error(e); this.flash('Delete failed'); return; } finally { this.writing--; } }
+    if (this.lib) { if (!await this.ensureWrite()) { this.flash('Delete failed'); return; } this.writing++; try { await FS.remove(b.name); if (this.sigs) this.sigs.delete(b.name); } catch (e) { console.error(e); this.flash('Delete failed'); return; } finally { this.writing--; } }
     this.dirty.delete(b.name);
     this.update((books, s) => { books.splice(i, 1); const bi = s.bookIdx === i ? -1 : s.bookIdx > i ? s.bookIdx - 1 : s.bookIdx; return { renameIdx: -1, bookIdx: bi, currentId: s.bookIdx === i ? null : s.currentId }; });
   };
@@ -1114,17 +1161,16 @@ class Component extends DCLogic {
     return { id: 'c' + Math.random().toString(36).slice(2), title, text: body };
   }
   open = async () => {
-    if (window.showDirectoryPicker && !this.noFs) {
-      try {
-        const lib = await window.showDirectoryPicker({ mode: 'readwrite' });
-        const books = await this.readLib(lib), templates = await this.readTemplates(lib);
-        await this.applyConfig(lib); this.sigs = await this.diskSigs(lib);
-        this.libHandle = lib; await this.remember(lib);
-        this.setState({ booting: false, resumable: false }); this.loadLibrary(lib.name, books, templates); return;
-      } catch (e) { if (e.name === 'AbortError') return; if (e.name === 'LooseFiles') { this.loose(); return; } this.noFs = true; }
+    if (FS.supported && !this.noFs) {
+      let r = null; try { r = await FS.pick(); } catch (e) { console.error(e); this.noFs = true; }
+      if (r) { this.lib = r; await this.openRemembered(); return; }
+      if (!this.noFs) return;
     }
     this.fileInputRef.current.click();
   };
+  // Show in Finder (Explorer on Windows): the Mac app only; the browser has no path to give.
+  revealBook = () => { const b = this.state.books[this.state.renameIdx]; if (b && FS.reveal) FS.reveal(b.name); };
+  revealLibrary = () => { if (FS.reveal) FS.reveal(''); };
   onFilesPicked = async e => {
     const all = Array.from(e.target.files).filter(f => /\.(md|txt)$/i.test(f.name) || /^book\.json$/i.test(f.name));
     if (all.some(f => f.webkitRelativePath.split('/').length === 2 && /\.(md|txt)$/i.test(f.name))) { this.loose(); e.target.value = ''; return; }
@@ -1163,44 +1209,28 @@ class Component extends DCLogic {
     this.setState({ libName, books, templates: templates || [], bookIdx: -1, currentId: null, tplScreen: false, tplEdit: '', settingsOpen: false, folderOpen: true }, () => { this.persist(); this.startWatch(); });
   }
 
-  // ---- remembered folder: only the directory handle lives in IndexedDB; books are always read from disk
-  idb(mode, fn) {
-    return new Promise((res, rej) => {
-      const r = indexedDB.open('writer', 1);
-      r.onupgradeneeded = () => r.result.createObjectStore('kv');
-      r.onerror = () => rej(r.error);
-      r.onsuccess = () => {
-        const db = r.result, tx = db.transaction('kv', mode), q = fn(tx.objectStore('kv'));
-        tx.oncomplete = () => { db.close(); res(q.result); };
-        tx.onerror = () => { db.close(); rej(tx.error); };
-      };
-    });
-  }
-  remember(h) { return this.idb('readwrite', s => s.put(h, 'lib')).catch(() => {}); }
-  forget() { return this.idb('readwrite', s => s.delete('lib')).catch(() => {}); }
+  // ---- remembered folder: the adapter remembers it (a path in the Mac app, a handle in IndexedDB on the web); books are always read from disk
   // The web build runs only in Google Chrome; the Mac app (window.dictate bridge) is always allowed. Nothing else renders while blocked.
   blocked = () => !window.dictate && !Dictation.isChrome();
   boot = async () => {
-    let h = null;
-    try { h = await this.idb('readonly', s => s.get('lib')); } catch (e) {}
-    if (!h || typeof h.queryPermission !== 'function') { this.setState({ booting: false }); return; }
-    this.libHandle = h;
-    const p = await h.queryPermission({ mode: 'readwrite' }).catch(() => 'denied');
-    if (p === 'granted') await this.openRemembered(); else this.setState({ booting: false, resumable: p === 'prompt' });
+    let r = null; try { r = await FS.resume(); } catch (e) {}
+    if (r && r.name) { this.lib = r; await this.openRemembered(); }
+    else if (r === 'prompt') this.setState({ booting: false, resumable: true });
+    else { this.setState({ booting: false }); if (r && r.error) this.flash(r.error); }
   };
   resume = async () => {
-    const h = this.libHandle; if (!h) return this.open();
-    const p = await h.requestPermission({ mode: 'readwrite' }).catch(() => 'denied');
-    if (p === 'granted') await this.openRemembered(); else this.flash('Could not open');
+    if (!this.state.resumable) return this.open();
+    const r = await FS.resumeClick().catch(() => null);
+    if (r && r.name) { this.lib = r; await this.openRemembered(); } else this.flash('Could not open');
   };
   async openRemembered() {
     try {
-      const books = await this.readLib(this.libHandle), templates = await this.readTemplates(this.libHandle);
-      await this.applyConfig(this.libHandle); this.sigs = await this.diskSigs(this.libHandle);
-      this.setState({ booting: false, resumable: false }); this.loadLibrary(this.libHandle.name, books, templates);
+      const list = await FS.list(), books = await this.readLib(list), templates = await this.readTemplates(list);
+      await this.applyConfig(); this.sigs = this.sigsFrom(list);
+      this.setState({ booting: false, resumable: false }); this.loadLibrary(this.lib.name, books, templates);
     } catch (e) {
       if (e.name === 'LooseFiles') { this.setState({ booting: false, resumable: true }); this.loose(); return; }
-      this.libHandle = null; await this.forget();
+      this.lib = null; await FS.forget();
       this.setState({ booting: false, resumable: false }); this.flash('Folder not found');
     }
   }
@@ -1208,31 +1238,41 @@ class Component extends DCLogic {
   // ---- sync: write every book missing or differing on disk, pull in folders the app doesn't know
   looseError() { const e = new Error('loose'); e.name = 'LooseFiles'; return e; }
   isBookFile(n) { return /\.(md|txt)$/i.test(n) || /^book\.json$/i.test(n); }
-  async readFiles(dir) {
+  async readFiles(dirPath, list) {
     const files = [];
-    for await (const [fname, fe] of dir.entries()) if (fe.kind === 'file' && this.isBookFile(fname)) files.push({ name: fname, text: await (await fe.getFile()).text() });
+    for (const f of await this.dirFiles(dirPath, list)) if (this.isBookFile(f.name)) files.push({ name: f.name, text: await FS.read(dirPath + '/' + f.name) });
     return files;
   }
 
-  // ---- watch the folder: poll file stamps while visible; disk wins for any book with nothing pending here
-  async bookSig(dir) {
-    const parts = [];
-    for await (const [fname, fe] of dir.entries()) { if (fe.kind !== 'file' || !this.isBookFile(fname)) continue; const f = await fe.getFile(); parts.push(fname + ':' + f.lastModified + ':' + f.size); }
-    return parts.sort().join('|');
-  }
-  async diskSigs(lib) {
-    const sigs = new Map();
-    for await (const [bname, entry] of lib.entries()) { if (bname.startsWith('.') || entry.kind !== 'directory' || this.isTplDir(bname)) continue; sigs.set(bname, await this.bookSig(entry)); }
-    try { const f = await (await lib.getFileHandle('writer.json')).getFile(); sigs.set('', f.lastModified + ':' + f.size); } catch (e) { sigs.set('', ''); }
-    sigs.set('Templates/', await this.tplSig(lib));
+  // ---- watch the folder: the Mac app gets OS change events through the adapter; the web polls file stamps while visible.
+  // Disk wins for any book with nothing pending here. Signatures come from one listing: per book (and Templates/) the
+  // sorted name:mtime:size of its files; '' is writer.json.
+  sigsFrom(list) {
+    const parts = new Map();
+    for (const e of list) {
+      const i = e.path.indexOf('/');
+      if (i < 0) { if (e.kind === 'dir' && !this.isTplDir(e.path) && !parts.has(e.path)) parts.set(e.path, []); continue; }
+      const top = e.path.slice(0, i), name = e.path.slice(i + 1);
+      if (name.includes('/') || e.kind !== 'file' || !this.isBookFile(name)) continue;
+      const key = this.isTplDir(top) ? 'Templates/' : top;
+      if (!parts.has(key)) parts.set(key, []);
+      parts.get(key).push(name + ':' + e.mtime + ':' + e.size);
+    }
+    const sigs = new Map(); for (const [k, v] of parts) sigs.set(k, v.sort().join('|'));
+    if (!sigs.has('Templates/')) sigs.set('Templates/', '');
+    const cfg = list.find(e => e.kind === 'file' && e.path === 'writer.json'); sigs.set('', cfg ? cfg.mtime + ':' + cfg.size : '');
     return sigs;
   }
-  startWatch(delay) { this.stopWatch(); if (this.libHandle && this.state.folderOpen) this.watchTimer = setTimeout(this.watchTick, delay == null ? 3000 : delay); }
-  stopWatch() { clearTimeout(this.watchTimer); this.watchTimer = null; }
+  startWatch(delay) {
+    this.stopWatch(); if (!this.lib || !this.state.folderOpen) return;
+    if (FS.watch) { this.unwatch = FS.watch(() => { clearTimeout(this.watchTimer); this.watchTimer = setTimeout(this.watchTick, 250); }); if (delay != null) this.watchTimer = setTimeout(this.watchTick, delay); }
+    else this.watchTimer = setTimeout(this.watchTick, delay == null ? 3000 : delay);
+  }
+  stopWatch() { clearTimeout(this.watchTimer); this.watchTimer = null; if (this.unwatch) { this.unwatch(); this.unwatch = null; } }
   watchTick = async () => {
     this.watchTimer = null;
-    try { if (this.libHandle && this.state.folderOpen && document.visibilityState === 'visible' && !this.writing) await this.pullDisk(); } catch (e) { console.error(e); }
-    this.startWatch();
+    try { if (this.lib && this.state.folderOpen && document.visibilityState === 'visible' && !this.writing) await this.pullDisk(); } catch (e) { console.error(e); }
+    if (!FS.watch) this.startWatch(); else if (this.writing && this.lib) this.watchTimer = setTimeout(this.watchTick, 500);
   };
   flagCaret(on) {
     const a = document.activeElement;
@@ -1249,24 +1289,24 @@ class Component extends DCLogic {
     return r;
   }
   async pullDisk() {
-    const lib = this.libHandle, sigs = await this.diskSigs(lib);
+    const list = await FS.list(), sigs = this.sigsFrom(list);
     if (this.writing) return;
     const old = this.sigs; this.sigs = sigs;
     if (!old) return;
     if (sigs.get('') && sigs.get('') !== old.get('')) {
-      const cfg = await this.readConfig(lib);
+      const cfg = await this.readConfig();
       if (cfg && cfg.settings && typeof cfg.settings === 'object') { const settings = { ...this.state.settings, ...cfg.settings }; this.lastCfg = JSON.stringify({ settings }); this.setState({ settings }, this.persist); }
     }
     if (sigs.get('Templates/') !== old.get('Templates/')) {
       if (this.dirtyTpl.size || (this.state.tplEdit && Date.now() - this.lastInput < 2000)) sigs.set('Templates/', old.get('Templates/'));
-      else { const templates = await this.readTemplates(lib); this.flagCaret(!!this.state.tplEdit); this.setState(s => ({ templates, tplEdit: templates.some(t => t.file === s.tplEdit) ? s.tplEdit : '' })); }
+      else { const templates = await this.readTemplates(list); this.flagCaret(!!this.state.tplEdit); this.setState(s => ({ templates, tplEdit: templates.some(t => t.file === s.tplEdit) ? s.tplEdit : '' })); }
     }
     const curBook = this.book(), curName = curBook ? curBook.name : null;
     const fresh = new Map(), removed = [];
     for (const [name, sig] of sigs) {
       if (name === '' || name === 'Templates/' || (old.has(name) && old.get(name) === sig)) continue;
       if (this.dirty.has(name) || (name === curName && Date.now() - this.lastInput < 2000)) { if (old.has(name)) sigs.set(name, old.get(name)); else sigs.delete(name); continue; }
-      fresh.set(name, this.makeBook(name, await this.readFiles(await lib.getDirectoryHandle(name))));
+      fresh.set(name, this.makeBook(name, await this.readFiles(name, list)));
     }
     for (const name of old.keys()) if (name && name !== 'Templates/' && !sigs.has(name)) { if (this.dirty.has(name)) sigs.set(name, old.get(name)); else removed.push(name); }
     if (!fresh.size && !removed.length) return;
@@ -1278,23 +1318,23 @@ class Component extends DCLogic {
       return this.repoint(books, s, fresh);
     });
   }
-  async readLib(lib) {
+  async readLib(list) {
     const books = [];
-    for await (const [bname, entry] of lib.entries()) {
-      if (bname.startsWith('.') || this.isTplDir(bname)) continue;
-      if (entry.kind === 'file') { if (/\.(md|txt)$/i.test(bname)) throw this.looseError(); continue; }
-      books.push(this.makeBook(bname, await this.readFiles(entry)));
+    for (const e of list) {
+      if (e.path.includes('/') || this.isTplDir(e.path)) continue;
+      if (e.kind === 'file') { if (/\.(md|txt)$/i.test(e.path)) throw this.looseError(); continue; }
+      books.push(this.makeBook(e.path, await this.readFiles(e.path, list)));
     }
     return books;
   }
   bookKey(b) { return b.chapters.map((c, i) => this.slug(i, c.title) + '\u0000' + this.toMd(c) + '\u0000' + (c.notes || '')).join('\u0001') + '\u0002' + this.metaJson(b); }
   sync = async () => {
-    if (!this.libHandle) { this.flash('Open the folder in Chrome or Edge to sync'); return; }
+    if (!this.lib) { this.flash('Open the folder in Chrome or Edge to sync'); return; }
     this.setState({ status: 'Syncing' });
     try {
       clearTimeout(this.saveTimer); await this.flushDisk();
-      const books = await this.readLib(this.libHandle), templates = await this.readTemplates(this.libHandle);
-      await this.applyConfig(this.libHandle); this.sigs = await this.diskSigs(this.libHandle);
+      const list = await FS.list(), books = await this.readLib(list), templates = await this.readTemplates(list);
+      await this.applyConfig(); this.sigs = this.sigsFrom(list);
       books.sort((a, b) => a.name.localeCompare(b.name)); this.setState(s => ({ templates, tplEdit: templates.some(t => t.file === s.tplEdit) ? s.tplEdit : '' }));
       this.flagCaret(!!this.book() || !!this.state.tplEdit);
       this.update((old, s) => { old.length = 0; old.push(...books); return this.repoint(old, s, new Set(books.map(b => b.name))); });
@@ -1404,8 +1444,9 @@ class Component extends DCLogic {
       tplWords: this.state.tplEdit && cur ? this.words(cur.text).toLocaleString() : '',
       printMenu: printMenu && folderOpen, settingsOpen: settingsOpen && folderOpen, status, settingRows,
       noFolder: !libName, hasFolder: !!libName, libName: libName || 'None', folderBtn: libName ? 'Change' : 'Choose',
-      logOut: this.logOut, syncLabel: this.libHandle ? (this.dirty.size + this.dirtyTpl.size ? (this.dirty.size + this.dirtyTpl.size) + ' unsaved' : 'Folder') : 'Reopen folder to sync', sync: this.sync,
+      logOut: this.logOut, syncLabel: this.lib ? (this.dirty.size + this.dirtyTpl.size ? (this.dirty.size + this.dirtyTpl.size) + ' unsaved' : 'Folder') : 'Reopen folder to sync', sync: this.sync,
       confirmDelete, askDelete: this.askDelete, askDeleteBook: this.askDeleteBook,
+      canReveal: !!(FS.reveal && this.lib), revealLabel: /Mac/.test(navigator.platform) ? 'Show in Finder' : 'Show in Explorer', revealBook: this.revealBook, revealLibrary: this.revealLibrary,
       deleteTitle: this.state.confirmTpl ? (this.state.templates.find(t => t.file === this.state.confirmTpl) || {}).name || '' : this.state.confirmBook ? (books[renameIdx] ? books[renameIdx].name : '') : (cur ? (cur.title || 'Untitled') : ''),
       confirmDeleteAction: this.state.confirmTpl ? this.deleteTemplate : this.state.confirmBook ? this.deleteBook : this.deleteChapter,
       tplPickOpen: this.state.tplPick, tplSaveOpen: this.state.tplSave, tplName: this.state.tplName, tplRef: this.tplRef, blankChapter: this.blankChapter,

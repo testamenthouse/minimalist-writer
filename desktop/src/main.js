@@ -1,5 +1,7 @@
-const { app, BrowserWindow, Menu, dialog, nativeTheme, net, protocol, session, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, net, protocol, session, shell } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const fsp = require('fs/promises');
 const { pathToFileURL } = require('url');
 const { autoUpdater } = require('electron-updater');
 const dictate = require('./dictate.js');
@@ -8,6 +10,8 @@ const SCHEME = 'app';
 const ORIGIN = `${SCHEME}://writer`;
 const APP_DIR = path.join(__dirname, '..', 'app');
 const SMOKE = !!process.env.WRITER_SMOKE;
+if (SMOKE) app.setPath('userData', path.join(require('os').tmpdir(), 'writer-smoke-userdata')); // never touch the real remembered folder
+const CONFIG = () => path.join(app.getPath('userData'), 'config.json');
 
 protocol.registerSchemesAsPrivileged([
   { scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }
@@ -23,8 +27,56 @@ function serveApp() {
   });
 }
 
-// ---- the page is ours: grant it the File System Access API and fullscreen, nothing else
-const ALLOWED = new Set(['fileSystem', 'fullscreen', 'clipboard-sanitized-write']);
+// ---- library: one folder, remembered in userData/config.json; the page reaches it through window.writer (preload.js)
+let library = null, watcher = null;
+function readConfig() { try { return JSON.parse(fs.readFileSync(CONFIG(), 'utf8')) || {}; } catch (e) { return {}; } }
+function writeConfig(patch) { const cfg = { ...readConfig(), ...patch }; fs.mkdirSync(path.dirname(CONFIG()), { recursive: true }); fs.writeFileSync(CONFIG(), JSON.stringify(cfg, null, 2) + '\n'); }
+function inside(rel) {
+  if (!library) throw new Error('no library');
+  const abs = path.resolve(library, rel || '.');
+  if (abs !== library && !abs.startsWith(library + path.sep)) throw new Error('outside library');
+  return abs;
+}
+let changeTimer = null;
+function startWatch() {
+  stopWatch(); if (!library) return;
+  try { watcher = fs.watch(library, { recursive: true }, () => { clearTimeout(changeTimer); changeTimer = setTimeout(() => { if (win && !win.isDestroyed()) win.webContents.send('lib:changed'); }, 250); }); watcher.on('error', () => {}); } catch (e) { watcher = null; }
+}
+function stopWatch() { if (watcher) { watcher.close(); watcher = null; } }
+function setLibrary(dir) { library = dir ? path.resolve(dir) : null; writeConfig({ library }); startWatch(); return library ? { name: path.basename(library) } : null; }
+async function walk(dir, rel, out) {
+  const entries = await fsp.readdir(dir, { withFileTypes: true });
+  for (const e of entries) {
+    if (e.name.startsWith('.')) continue;
+    const p = rel ? rel + '/' + e.name : e.name, abs = path.join(dir, e.name);
+    if (e.isDirectory()) { out.push({ path: p, kind: 'dir', mtime: 0, size: 0 }); await walk(abs, p, out); }
+    else if (e.isFile()) { const st = await fsp.stat(abs); out.push({ path: p, kind: 'file', mtime: Math.round(st.mtimeMs), size: st.size }); }
+  }
+}
+function wireIpc() {
+  ipcMain.handle('lib:pick', async () => {
+    const r = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] });
+    if (r.canceled || !r.filePaths[0]) return null;
+    return setLibrary(r.filePaths[0]);
+  });
+  ipcMain.handle('lib:resume', async () => {
+    const cfg = readConfig(); if (!cfg.library) return null;
+    try { const st = await fsp.stat(cfg.library); if (!st.isDirectory()) throw new Error('x'); } catch (e) { writeConfig({ library: null }); return { error: 'Folder not found' }; }
+    return setLibrary(cfg.library);
+  });
+  ipcMain.handle('lib:forget', async () => { stopWatch(); library = null; writeConfig({ library: null }); });
+  ipcMain.handle('lib:path', async () => library || '');
+  ipcMain.handle('lib:reveal', async (e, p) => { shell.showItemInFolder(inside(p)); });
+  ipcMain.handle('fs:list', async () => { const out = []; await walk(inside(''), '', out); return out; });
+  ipcMain.handle('fs:read', (e, p) => fsp.readFile(inside(p), 'utf8'));
+  ipcMain.handle('fs:write', async (e, p, text) => { const abs = inside(p); await fsp.mkdir(path.dirname(abs), { recursive: true }); const tmp = abs + '.tmp-' + process.pid; await fsp.writeFile(tmp, text, 'utf8'); await fsp.rename(tmp, abs); });
+  ipcMain.handle('fs:remove', (e, p) => fsp.rm(inside(p), { recursive: true, force: true }));
+  ipcMain.handle('fs:rename', async (e, a, b) => { const to = inside(b); await fsp.mkdir(path.dirname(to), { recursive: true }); await fsp.rename(inside(a), to); });
+  ipcMain.handle('fs:mkdir', (e, p) => fsp.mkdir(inside(p), { recursive: true }));
+}
+
+// ---- the page is ours: grant it fullscreen and the clipboard, nothing else (files go through the bridge above)
+const ALLOWED = new Set(['fullscreen', 'clipboard-sanitized-write']);
 function trustApp() {
   const ses = session.defaultSession;
   const ours = (origin) => typeof origin === 'string' && origin.startsWith(ORIGIN);
@@ -88,8 +140,8 @@ function createWindow() {
       try {
         const r = await win.webContents.executeJavaScript(`(async () => ({
           title: document.title, origin: location.origin, text: document.body.innerText.trim().replace(/\\s+/g, ' ').slice(0, 60),
-          fsa: typeof window.showDirectoryPicker,
-          opfsPerm: await navigator.storage.getDirectory().then(h => h.queryPermission({ mode: 'readwrite' })).catch(e => 'ERR ' + e.message),
+          bridge: typeof window.writer, kind: window.__wr && window.__wr.fs && window.__wr.fs.kind,
+          files: window.writer ? (await window.writer.list()).map(e => e.path).sort() : null,
           font: document.fonts.check('600 20px Inter')
         }))()`);
         console.log('SMOKE ' + JSON.stringify(r));
@@ -105,7 +157,9 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  serveApp(); trustApp(); dictate.wire(() => win); buildMenu(); createWindow();
+  serveApp(); trustApp(); wireIpc(); dictate.wire(() => win); buildMenu();
+  if (SMOKE && process.env.WRITER_SMOKE_LIB) writeConfig({ library: path.resolve(process.env.WRITER_SMOKE_LIB) });
+  createWindow();
   checkForUpdates(false);
   setInterval(() => checkForUpdates(false), 60 * 60 * 1000);
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

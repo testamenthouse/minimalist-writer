@@ -29,6 +29,7 @@ No accounts, no server, no analytics. Everything stays on your machine.
 - **Templates.** Keep chapter starting points in a `Templates/` folder and pick one when you add a chapter.
 - **Autosave and folder watching.** Every change is on disk within a second. Edit a file in another app and Writer picks it up.
 - **Light, dark, or system theme.** Dark is charcoal, not black.
+- **Show in Finder.** In the Mac app, a book's settings open its folder in Finder.
 
 ## Get it
 
@@ -211,3 +212,7 @@ desktop/
   electron-builder.yml
 .github/workflows/   Release and Pages workflows, manual-only (nothing runs automatically)
 ```
+
+## License
+
+[GPL-3.0](LICENSE).
