@@ -2,7 +2,9 @@
 
 A minimalist book-writing app that works offline. A library is a folder on your disk, each book is a subfolder, and each chapter is a Markdown file. Writer reads and writes those files directly and keeps nothing else, so your manuscript is always yours, in plain text, wherever you keep it.
 
-No accounts, no server, no analytics. Everything stays on your machine.
+**Try it now:** https://testamenthouse.github.io/minimalist-writer/ (Google Chrome, then pick any folder)
+
+**There is no database.** The only storage is the folder you choose. The whole app runs off that folder: every book, chapter, note, template and setting is a file in it, read and written directly. No accounts, no server, no analytics. Everything stays on your machine.
 
 - [What it does](#what-it-does)
 - [Get it](#get-it)
@@ -47,7 +49,7 @@ Phones and tablets get a one-column layout but cannot open a folder. Writing hap
 
 ## Your library is a folder
 
-The first time you open Writer it asks for a folder. That folder is your library. Keep it in iCloud Drive, Dropbox, or a git repo. Open it in any other editor. Writer never caches a book, so what you see is always what is on disk.
+The first time you open Writer it asks for a folder. That folder is your library and the only place anything is stored. There is no database behind it, no copy in the cloud, and no hidden cache: the entire UI is built from the files in that folder each time it reads them, and every edit goes straight back to disk. Keep it in iCloud Drive, Dropbox, or a git repo. Open it in any other editor. What you see is always what is on disk.
 
 ```
 My Books/
@@ -66,6 +68,7 @@ My Books/
 - Notes live in a `.notes.md` sidecar beside the chapter, written only when there is something in them.
 - `book.json` holds the word goal and spine color. It exists only while at least one is set.
 - `Log out` in Settings is the only thing that makes Writer forget the folder. Closing the tab or quitting the app does not.
+- A [Sermon Builder](https://github.com/testamenthouse/sermon-builder) library is refused untouched. Pick one by mistake and Writer links you to Sermon Builder instead of writing anything into it.
 
 ## Writing
 

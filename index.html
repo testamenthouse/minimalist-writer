@@ -63,11 +63,18 @@ a{color:var(--fg)}a:hover{color:var(--muted)}
   </div>
 </sc-if>
 
+<sc-if value="{{ showGit }}" hint-placeholder-val="{{ false }}">
+  <a href="{{ repoUrl }}" target="_blank" rel="noopener" title="GitHub" style="position:fixed;top:16px;right:20px;z-index:6;display:flex;align-items:center;padding:6px 8px;color:var(--faint);border-radius:6px" style-hover="color:var(--fg);background:var(--fill)"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a>
+</sc-if>
+
 <sc-if value="{{ alertOpen }}" hint-placeholder-val="{{ false }}">
   <div onClick="{{ closeAlert }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:var(--scrim)">
     <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:20px;padding:24px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:14px;min-width:280px;max-width:360px">
       <div style="font-size:15px;font-weight:600;line-height:1.4">{{ alertText }}</div>
       <div style="display:flex;justify-content:flex-end;gap:4px">
+        <sc-if value="{{ alertLinkOpen }}" hint-placeholder-val="{{ false }}">
+          <a href="{{ alertLink }}" target="_blank" rel="noopener" onClick="{{ closeAlert }}" style="display:inline-block;background:none;border:0;padding:8px 12px;font:inherit;font-size:14px;color:var(--muted);text-decoration:none;cursor:pointer;border-radius:6px" style-hover="color:var(--fg);background:var(--fill)">{{ alertLinkLabel }}</a>
+        </sc-if>
         <button onClick="{{ closeAlert }}" style="background:var(--fg);border:0;padding:8px 14px;font:inherit;font-size:14px;color:var(--bg);cursor:pointer;border-radius:6px" style-hover="background:var(--fg-hover)">OK</button>
       </div>
     </div>
@@ -551,6 +558,9 @@ const Dictation = {
     };
   }
 };
+const SERMON_BUILDER_URL = 'https://testamenthouse.github.io/sermon-builder/';
+// The GitHub Pages demo wears a link to its repo in the top-right corner; installed apps and local checkouts do not.
+const REPO_URL = 'https://github.com/testamenthouse/minimalist-writer', ON_PAGES = /\.github\.io$/i.test(location.hostname);
 // ---- FS: the folder adapter. The Mac app's preload exposes window.writer (paths resolved in the main process, Node fs);
 // the browser falls back to the File System Access API with the folder handle in IndexedDB. Same interface either way:
 // relative, forward-slashed paths; list() is one recursive walk (name + mtime + size, no reads); nothing else is cached.
@@ -600,7 +610,7 @@ window.__wr = Object.assign(window.__wr || {}, { fs: FS });
 class Component extends DCLogic {
   state = {
     libName: '', books: [], bookIdx: -1, currentId: null, folderOpen: false, booting: true, resumable: false,
-    isFull: false, printMenu: false, settingsOpen: false, confirmDelete: false, confirmTpl: '', status: '', alertText: '', dictating: '', dictPartial: '', dictLevel: 0, dictNote: '',
+    isFull: false, printMenu: false, settingsOpen: false, confirmDelete: false, confirmTpl: '', status: '', alertText: '', alertLink: '', alertLinkLabel: '', dictating: '', dictPartial: '', dictLevel: 0, dictNote: '',
     templates: [], tplPick: false, tplSave: false, tplName: '', tplScreen: false, tplEdit: '', tplChoice: '', tplDrop: false,
     renameIdx: -1, renameValue: '', renameMeta: {}, railCollapsed: localStorage.getItem('writer.rail') === 'min', notesOpen: localStorage.getItem('writer.notes') === 'open', findOpen: false, find: '', findIdx: 0, findCount: 0,
     settings: { font: 'sans', size: 18, typewriter: true, dim: true, pageNums: false, theme: 'system' }, printScope: 'book', printRoll: 80,
@@ -766,6 +776,7 @@ class Component extends DCLogic {
     el.dataset.key = key;
     el.innerHTML = '';
     const paras = ch && ch.text ? ch.text.split('\n') : [''];
+    if (paras[paras.length - 1]) paras.push(''); // a fresh line to click into when the chapter ends mid-text; left alone if one is already there
     for (const p of paras) {
       const node = document.createElement('p'); node.style.margin = '0';
       if (p) node.textContent = p; else node.appendChild(document.createElement('br'));
@@ -790,7 +801,7 @@ class Component extends DCLogic {
     const kids = Array.from(el.children);
     const txt = k => k.innerText.replace(/\n+$/, '');
     if (!kids.length) return txt(el);
-    return kids.map(txt).join('\n');
+    return kids.map(txt).join('\n').replace(/\n+$/, '');
   }
   applyAids() {
     const el = this.editorRef.current; if (!el || !this.state.isFull) return;
@@ -939,8 +950,10 @@ class Component extends DCLogic {
   stop = e => e.stopPropagation();
   closeMenus = () => this.setState({ printMenu: false, settingsOpen: false, confirmDelete: false, renameIdx: -1, tplPick: false, tplSave: false });
   openBookSettings = () => { if (this.book()) this.startRename(this.state.bookIdx); };
-  loose = () => this.setState({ alertText: 'This folder should only contain subfolders.', settingsOpen: false });
-  closeAlert = () => this.setState({ alertText: '' });
+  loose = () => this.setState({ alertText: 'This folder should only contain subfolders.', alertLink: '', settingsOpen: false });
+  // A Sermon Builder library (sermon.json, Illustrations/, a collection.json) is refused untouched and handed to that app; the folder is forgotten.
+  foreign = () => this.setState({ alertText: 'This is a Sermon Builder library.', alertLink: SERMON_BUILDER_URL, alertLinkLabel: 'Open Sermon Builder', settingsOpen: false });
+  closeAlert = () => this.setState({ alertText: '', alertLink: '' });
   swallow = e => e.preventDefault();
   // ---- dictation (see Dictation above): words land in the focused editor, else the body editor at its end
   toggleDictation = () => { if (this.state.dictating) this.stopDictation(); else this.startDictation(); };
@@ -1173,6 +1186,8 @@ class Component extends DCLogic {
   revealLibrary = () => { if (FS.reveal) FS.reveal(''); };
   onFilesPicked = async e => {
     const all = Array.from(e.target.files).filter(f => /\.(md|txt)$/i.test(f.name) || /^book\.json$/i.test(f.name));
+    const rel = Array.from(e.target.files).map(f => f.webkitRelativePath.split('/').slice(1).join('/'));
+    if (this.isForeign(rel.flatMap(p => [{ kind: 'file', path: p }, { kind: 'dir', path: p.split('/')[0] }]))) { this.foreign(); e.target.value = ''; return; }
     if (all.some(f => f.webkitRelativePath.split('/').length === 2 && /\.(md|txt)$/i.test(f.name))) { this.loose(); e.target.value = ''; return; }
     const list = all.filter(f => f.webkitRelativePath.split('/').length >= 3);
     const byBook = new Map(), tpl = []; let libName = '';
@@ -1230,6 +1245,7 @@ class Component extends DCLogic {
       this.setState({ booting: false, resumable: false }); this.loadLibrary(this.lib.name, books, templates);
     } catch (e) {
       if (e.name === 'LooseFiles') { this.setState({ booting: false, resumable: true }); this.loose(); return; }
+      if (e.name === 'SermonLibrary') { this.lib = null; await FS.forget(); this.setState({ booting: false, resumable: false }); this.foreign(); return; }
       this.lib = null; await FS.forget();
       this.setState({ booting: false, resumable: false }); this.flash('Folder not found');
     }
@@ -1318,7 +1334,12 @@ class Component extends DCLogic {
       return this.repoint(books, s, fresh);
     });
   }
+  isForeign(list) {
+    return list.some(e => (e.kind === 'file' && (/^sermon\.json$/i.test(e.path) || /^[^/]+\/(collection|series)\.json$/i.test(e.path))) || (e.kind === 'dir' && /^illustrations$/i.test(e.path)));
+  }
+  foreignError() { const e = new Error('foreign'); e.name = 'SermonLibrary'; return e; }
   async readLib(list) {
+    if (this.isForeign(list)) throw this.foreignError();
     const books = [];
     for (const e of list) {
       if (e.path.includes('/') || this.isTplDir(e.path)) continue;
@@ -1340,7 +1361,7 @@ class Component extends DCLogic {
       this.update((old, s) => { old.length = 0; old.push(...books); return this.repoint(old, s, new Set(books.map(b => b.name))); });
       this.dirty.clear(); this.dirtyTpl.clear();
       this.flash('Up to date');
-    } catch (e) { if (e.name === 'LooseFiles') this.loose(); else { console.error(e); this.flash('Sync failed'); } }
+    } catch (e) { if (e.name === 'LooseFiles') this.loose(); else if (e.name === 'SermonLibrary') this.foreign(); else { console.error(e); this.flash('Sync failed'); } }
   };
 
   printChapter = () => this.setState({ printMenu: true, printScope: 'chapter' });
@@ -1433,7 +1454,7 @@ class Component extends DCLogic {
       onDragStart: () => { this.dragId = c.id; }, onDragOver: e => e.preventDefault(), onDrop: e => { e.preventDefault(); this.move(this.dragId, c.id); this.dragId = null; }
     })) : [];
     return {
-      blocked, gated, resumable, alertOpen: !!alertText, alertText, swallow: this.swallow, toggleDictation: this.toggleDictation,
+      blocked, gated, resumable, alertOpen: !!alertText, repoUrl: REPO_URL, showGit: ON_PAGES && (blocked || gated || (folderOpen && !isFull && !b && !this.state.tplEdit)), alertText, alertLinkOpen: !!this.state.alertLink, alertLink: this.state.alertLink, alertLinkLabel: this.state.alertLinkLabel, swallow: this.swallow, toggleDictation: this.toggleDictation,
       dictating: !!dictating && folderOpen, dictLive: dictPartial || dictNote || (dictating === 'starting' ? 'Starting' : 'Listening'), dictLiveColor: dictPartial ? 'var(--fg)' : 'var(--faint)', dictDotAnim: dictLevel > 0.05 ? 'none' : 'wr-pulse 1.4s ease-in-out infinite', dictDotScale: (1 + dictLevel * 1.2).toFixed(2), dictColor: dictating ? 'var(--fg)' : 'var(--faint)', dictIconColor: dictating ? 'var(--fg)' : 'var(--muted)', dictIconBg: dictating ? 'var(--fill)' : 'transparent',
       openBookSettings: () => { this.setState({ drawer: false }); this.openBookSettings(); }, renameGoal: String(renameMeta.wordGoal == null ? '' : renameMeta.wordGoal), onGoalChange: this.onGoalChange,
       colorOpts: this.palette.map(c => ({ bg: c || 'var(--bg)', border: (renameMeta.color || '') === c ? 'var(--fg)' : 'var(--line)', pick: () => this.pickColor(c) })), gateAction: resumable ? this.resume : this.open, gateLabel: resumable ? 'Resume' : 'Open folder',
