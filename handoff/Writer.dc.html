@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#fff;color:#000;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#000}a:hover{color:#525252}
+[contenteditable]:focus{outline:none}
+::highlight(wr-find){background:#e5e7eb}
+::highlight(wr-cur){background:#000;color:#fff}
+[data-ph]:empty:before{content:attr(data-ph);color:#a3a3a3;pointer-events:none}
+
+</style>
+</helmet>
+
+<sc-if value="{{ isFull }}" hint-placeholder-val="{{ false }}">
+  <div ref="{{ scrollRef }}" style="position:fixed;inset:0;overflow:auto;background:#fff;z-index:10">
+    <div style="max-width:672px;margin:0 auto;padding:{{ fullPadTop }} 24px 50vh;box-sizing:border-box">
+      <div ref="{{ editorRef }}" contentEditable="true" suppressContentEditableWarning="{{ true }}" spellCheck="{{ true }}" onInput="{{ onInput }}" onPaste="{{ onPaste }}" style="font-size:18px;line-height:1.75;min-height:30vh;white-space:pre-wrap;overflow-wrap:break-word;caret-color:#000"></div>
+    </div>
+    <button onClick="{{ exitFull }}" title="Done" style="position:fixed;top:16px;right:20px;display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg></button>
+    <div style="position:fixed;right:20px;bottom:16px;font-size:13px;color:#a3a3a3">{{ chapterWords }}</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ looseAlert }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeAlert }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7)">
+    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:20px;padding:24px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;font-size:14px;min-width:280px;max-width:360px">
+      <div style="font-size:15px;font-weight:600;line-height:1.4">This folder should only contain subfolders.</div>
+      <div style="display:flex;justify-content:flex-end;gap:4px">
+        <button onClick="{{ closeAlert }}" style="background:#000;border:0;padding:8px 14px;font:inherit;font-size:14px;color:#fff;cursor:pointer;border-radius:6px" style-hover="background:#525252">OK</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+<sc-if value="{{ confirmDelete }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7)">
+    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:20px;padding:24px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;font-size:14px;min-width:280px;max-width:360px">
+      <div style="font-size:15px;font-weight:600;line-height:1.4">Delete “{{ deleteTitle }}”?</div>
+      <div style="display:flex;justify-content:flex-end;gap:4px">
+        <button onClick="{{ closeMenus }}" style="background:none;border:0;padding:8px 14px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">Cancel</button>
+        <button onClick="{{ confirmDeleteAction }}" style="background:#000;border:0;padding:8px 14px;font:inherit;font-size:14px;color:#fff;cursor:pointer;border-radius:6px" style-hover="background:#525252">Delete</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ printMenu }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7)">
+    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:20px;padding:24px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;font-size:14px">
+      <div style="color:#525252;font-size:13px;text-align:center;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;align-self:center">{{ printScopeLabel }}</div>
+      <div style="display:flex;gap:16px;align-items:stretch">
+        <button onClick="{{ printReceipt }}" style="display:flex;flex-direction:column;align-items:center;gap:12px;background:none;border:1px solid #e5e7eb;padding:20px 24px 14px;font:inherit;font-size:13px;color:#525252;cursor:pointer;border-radius:8px;width:150px;box-sizing:border-box" style-hover="border-color:#000;color:#000">
+          <span style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1">
+            <span style="display:flex;flex-direction:column;gap:5px;width:36px;height:92px;padding:9px 6px;box-sizing:border-box;border:1px solid #a3a3a3;border-bottom:0;background:#fff;clip-path:polygon(0 0,100% 0,100% calc(100% - 4px),91% 100%,82% calc(100% - 4px),73% 100%,64% calc(100% - 4px),55% 100%,46% calc(100% - 4px),37% 100%,28% calc(100% - 4px),19% 100%,10% calc(100% - 4px),0 100%)">
+              <span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:80%"></span><span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:65%"></span><span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:90%"></span><span style="height:1px;background:#a3a3a3;width:50%"></span>
+            </span>
+          </span>
+          <span>Receipt</span>
+        </button>
+        <button onClick="{{ printPaper }}" style="display:flex;flex-direction:column;align-items:center;gap:12px;background:none;border:1px solid #e5e7eb;padding:20px 24px 14px;font:inherit;font-size:13px;color:#525252;cursor:pointer;border-radius:8px;width:150px;box-sizing:border-box" style-hover="border-color:#000;color:#000">
+          <span style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1">
+            <span style="display:flex;flex-direction:column;gap:5px;width:70px;height:92px;padding:12px 10px;box-sizing:border-box;border:1px solid #a3a3a3;background:#fff">
+              <span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:85%"></span><span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:100%"></span><span style="height:1px;background:#a3a3a3;width:60%"></span>
+            </span>
+          </span>
+          <span>Letter</span>
+        </button>
+      </div>
+      <button onClick="{{ togglePageNums }}" style="display:flex;align-items:center;gap:8px;align-self:center;background:none;border:0;padding:4px 8px;font:inherit;font-size:13px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">
+        <span style="display:flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid #525252;border-radius:3px;background:{{ pageNumsBg }};color:#fff;flex:none"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></span>
+        <span>Page numbers</span>
+      </button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ renaming }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7)">
+    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:16px;padding:20px;min-width:360px;max-width:420px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
+      <input ref="{{ renameRef }}" value="{{ renameValue }}" onChange="{{ onRenameChange }}" onKeyDown="{{ onRenameKey }}" placeholder="Book name" style="width:100%;box-sizing:border-box;font:inherit;font-size:20px;font-weight:600;letter-spacing:-0.01em;border:0;border-bottom:1px solid #000;padding:4px 0;outline:none;background:none;min-width:0;color:#000">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px">
+        <span style="color:#525252">Words</span>
+        <input type="text" inputmode="numeric" value="{{ renameGoal }}" onChange="{{ onGoalChange }}" onKeyDown="{{ onRenameKey }}" style="width:110px;font:inherit;font-size:14px;text-align:right;border:0;border-bottom:1px solid #e5e7eb;padding:4px 0;outline:none;background:none;color:#000">
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px">
+        <span style="color:#525252">Color</span>
+        <div style="display:flex;gap:6px">
+          <sc-for list="{{ colorOpts }}" as="c" hint-placeholder-count="9">
+            <button onClick="{{ c.pick }}" style="width:18px;height:18px;border-radius:4px;padding:0;cursor:pointer;background:{{ c.bg }};border:1px solid {{ c.border }};box-sizing:border-box"></button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:4px">
+        <button onClick="{{ cancelRename }}" style="background:none;border:0;padding:8px 14px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">Cancel</button>
+        <button onClick="{{ commitRename }}" style="background:#000;color:#fff;border:0;padding:8px 14px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:#262626">Save</button>
+      </div>
+      <sc-if value="{{ renamingExisting }}" hint-placeholder-val="{{ false }}">
+        <div style="padding-top:10px;border-top:1px solid #e5e7eb">
+          <button onClick="{{ askDeleteBook }}" style="display:block;width:100%;background:none;border:0;padding:8px 12px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px;text-align:center" style-hover="color:#000;background:#f5f5f5">Delete book</button>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+<sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7)">
+    <div onClick="{{ stop }}" style="display:flex;flex-direction:column;gap:10px;padding:20px;min-width:360px;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px;padding-bottom:10px;margin-bottom:4px;border-bottom:1px solid #e5e7eb">
+        <span style="color:#525252">Folder</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#000;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ libName }}</span>
+          <button onClick="{{ open }}" style="background:none;border:0;padding:6px 12px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">{{ folderBtn }}</button>
+        </div>
+      </div>
+      <sc-if value="{{ hasFolder }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px;padding-bottom:10px;margin-bottom:4px;border-bottom:1px solid #e5e7eb">
+          <span style="color:#525252">{{ syncLabel }}</span>
+          <button onClick="{{ sync }}" style="background:none;border:0;padding:6px 12px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">Sync</button>
+        </div>
+      </sc-if>
+      <sc-for list="{{ settingRows }}" as="row" hint-placeholder-count="5">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:14px">
+          <span style="color:#525252">{{ row.label }}</span>
+          <div style="display:flex;gap:2px">
+            <sc-for list="{{ row.options }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.pick }}" style="background:{{ o.bg }};color:{{ o.color }};border:0;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer;border-radius:6px" style-hover="background:#f5f5f5">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <div style="padding-top:10px;margin-top:4px;border-top:1px solid #e5e7eb">
+        <button onClick="{{ logOut }}" style="display:block;width:100%;background:none;border:0;padding:8px 12px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px;text-align:center" style-hover="color:#000;background:#f5f5f5">Log out</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ gated }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px;box-sizing:border-box">
+    <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em;color:#000;text-align:center;margin-bottom:6px">Start Private Writing Session</div>
+    <button onClick="{{ gateAction }}" style="background:#000;color:#fff;border:0;padding:10px 18px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:#262626">{{ gateLabel }}</button>
+    <sc-if value="{{ resumable }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ open }}" style="background:none;border:0;padding:6px 12px;font:inherit;font-size:14px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5">Open folder</button>
+    </sc-if>
+    <div style="font-size:13px;color:#a3a3a3;min-height:16px">{{ status }}</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showShelf }}" hint-placeholder-val="{{ true }}">
+  <div style="max-width:720px;margin:0 auto;padding:40px 32px 128px;display:flex;flex-direction:column;gap:48px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 -10px">
+      <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em;color:#000;padding:0 10px;min-width:0;overflow-wrap:anywhere">{{ libName }}</div>
+      <div style="display:flex;gap:2px;flex:none">
+      <button onClick="{{ newBook }}" title="New book" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
+      <button onClick="{{ openSettings }}" title="Settings" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:32px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:32px 24px">
+        <sc-for list="{{ books }}" as="b" hint-placeholder-count="3">
+          <button onClick="{{ b.open }}" onDoubleClick="{{ b.rename }}" title="Double-click to rename" style="display:flex;flex-direction:column;gap:12px;background:none;border:0;text-align:left;padding:0;font:inherit;cursor:pointer">
+            <span style="position:relative;display:block;width:100%;aspect-ratio:2/3;box-sizing:border-box;padding-right:5px;padding-bottom:5px">
+              <span style="position:absolute;right:0;bottom:0;left:5px;top:5px;border:1px solid #e5e7eb;border-radius:1px 3px 3px 1px;background:#fff;box-sizing:border-box"></span>
+              <span style="position:absolute;right:2px;bottom:2px;left:3px;top:3px;border:1px solid #e5e7eb;border-radius:1px 3px 3px 1px;background:#fff;box-sizing:border-box"></span>
+              <span style="position:relative;display:flex;width:100%;height:100%;border:1px solid #525252;border-radius:2px 5px 5px 2px;background:#fff;box-sizing:border-box;overflow:hidden;transition:border-color .2s,transform .25s cubic-bezier(.2,.7,.2,1)" style-hover="border-color:#000;transform:translate(-3px,-3px)">
+                <span style="width:14px;flex:none;border-right:1px solid #e5e7eb;background:{{ b.spine }}"></span>
+                <span style="flex:1;display:flex;align-items:flex-start;padding:22px 16px 16px 16px;font-family:{{ contentFont }};font-size:15px;font-weight:600;letter-spacing:-0.01em;line-height:1.3;overflow-wrap:break-word;min-width:0">{{ b.name }}</span>
+              </span>
+            </span>
+            <span style="font-size:12px;color:#a3a3a3;padding-left:2px">{{ b.meta }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <sc-if value="{{ emptyShelf }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;justify-content:center;padding:48px 0">
+          <button onClick="{{ newBook }}" style="background:#000;color:#fff;border:0;padding:10px 18px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;border-radius:6px" style-hover="background:#262626">New book</button>
+        </div>
+      </sc-if>
+    </div>
+    <div style="font-size:13px;color:#a3a3a3;min-height:16px">{{ status }}</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showBook }}" hint-placeholder-val="{{ false }}">
+  <div style="display:grid;grid-template-columns:{{ gridCols }};min-height:100vh">
+    <sc-if value="{{ railCollapsed }}" hint-placeholder-val="{{ false }}">
+    <aside style="border-right:1px solid #e5e7eb;padding:24px 8px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;position:sticky;top:0;height:100vh;box-sizing:border-box">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;overflow:auto;min-height:0;width:100%">
+        <sc-for list="{{ chapters }}" as="ch" hint-placeholder-count="4">
+          <div draggable="true" onDragStart="{{ ch.onDragStart }}" onDragOver="{{ ch.onDragOver }}" onDrop="{{ ch.onDrop }}" onClick="{{ ch.open }}" title="{{ ch.title }}" style="display:flex;align-items:center;justify-content:center;width:32px;height:28px;border-radius:6px;cursor:pointer;font-size:11px;font-variant-numeric:tabular-nums;color:{{ ch.color }};background:{{ ch.bg }};font-weight:{{ ch.weight }}" style-hover="background:#f5f5f5">{{ ch.num }}</div>
+        </sc-for>
+        <button onClick="{{ newChapter }}" title="New chapter" style="display:flex;align-items:center;justify-content:center;width:32px;height:28px;background:none;border:0;padding:0;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
+      </div>
+      <button onClick="{{ openSettings }}" title="Settings" style="display:flex;align-items:center;justify-content:center;width:32px;height:28px;flex:none;background:none;border:0;padding:0;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
+      <button onClick="{{ toggleRail }}" title="Expand" style="display:flex;align-items:center;flex:none;background:none;border:0;padding:6px 6px;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button>
+    </aside>
+    </sc-if>
+    <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}">
+    <aside style="border-right:1px solid #e5e7eb;padding:24px 14px 20px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:100vh;box-sizing:border-box">
+      <div onMouseEnter="{{ hoverTitleOn }}" onMouseLeave="{{ hoverTitleOff }}" style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:2px">
+        <button onClick="{{ backToShelf }}" title="Books" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg></button>
+        <div style="flex:1"></div>
+        <button onClick="{{ newChapter }}" title="New chapter" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
+        <button onClick="{{ printBook }}" title="Print book" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg></button>
+        <button onClick="{{ downloadBook }}" title="Download book (.zip)" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg></button>
+        <button onClick="{{ openBookSettings }}" title="Book" style="display:flex;align-items:center;flex:none;opacity:{{ titleIconOpacity }};transition:opacity .4s;background:none;border:0;padding:6px 6px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></button>
+      </div>
+      <div style="font-size:15px;font-weight:600;line-height:1.4;overflow-wrap:anywhere;padding:0 10px">{{ bookTitle }}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;flex:1;overflow:auto;min-height:0">
+        <sc-for list="{{ chapters }}" as="ch" hint-placeholder-count="4">
+          <div draggable="true" onDragStart="{{ ch.onDragStart }}" onDragOver="{{ ch.onDragOver }}" onDrop="{{ ch.onDrop }}" onClick="{{ ch.open }}" style="display:flex;align-items:baseline;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1.4;color:{{ ch.color }};background:{{ ch.bg }};font-weight:{{ ch.weight }}" style-hover="background:#f5f5f5">
+            <span style="font-size:11px;color:#a3a3a3;min-width:16px">{{ ch.num }}</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">{{ ch.title }}</span>
+            <span style="font-size:11px;color:#a3a3a3">{{ ch.words }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <button onClick="{{ openSettings }}" style="display:flex;align-items:center;gap:8px;flex:none;background:none;border:0;padding:6px 10px;font:inherit;font-size:13px;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg><span>Settings</span></button>
+        <div style="flex:1;font-size:12px;color:#a3a3a3;padding:0 10px;min-height:16px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ status }}</div>
+        <button onClick="{{ toggleRail }}" title="Collapse" style="display:flex;align-items:center;flex:none;background:none;border:0;padding:6px 6px;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></button>
+      </div>
+    </aside>
+    </sc-if>
+    <main style="position:relative;padding:96px 48px 160px">
+      <div style="max-width:672px;margin:0 auto">
+        <sc-if value="{{ railCollapsed }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#a3a3a3;margin:0 0 12px">{{ bookTitle }}</div>
+        </sc-if>
+        <div onMouseEnter="{{ hoverToolsOn }}" onMouseLeave="{{ hoverToolsOff }}" style="position:fixed;top:0;left:{{ railWidth }};right:{{ notesWidth }};height:72px;z-index:5;display:flex;justify-content:flex-end;align-items:flex-start;gap:4px;padding:16px 20px 0 0;box-sizing:border-box;opacity:{{ toolsOpacity }};transition:opacity .4s">
+          <sc-if value="{{ findOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:2px;height:28px;padding:0 4px 0 10px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;margin-right:4px">
+              <input ref="{{ findRef }}" value="{{ find }}" onChange="{{ onFindChange }}" onKeyDown="{{ onFindKey }}" placeholder="Find" spellCheck="{{ false }}" style="border:0;outline:none;font:inherit;font-size:13px;width:160px;background:none;color:#000;padding:0"></input>
+              <span style="font-size:12px;color:#a3a3a3;min-width:36px;text-align:right;font-variant-numeric:tabular-nums">{{ findLabel }}</span>
+              <button onClick="{{ findPrev }}" title="Previous" style="display:flex;align-items:center;background:none;border:0;padding:4px;font:inherit;color:#525252;cursor:pointer;border-radius:4px" style-hover="color:#000;background:#f5f5f5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"></path></svg></button>
+              <button onClick="{{ findNext }}" title="Next" style="display:flex;align-items:center;background:none;border:0;padding:4px;font:inherit;color:#525252;cursor:pointer;border-radius:4px" style-hover="color:#000;background:#f5f5f5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+            </div>
+          </sc-if>
+          <button onClick="{{ toggleFind }}" title="Find" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:{{ findIconColor }};cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.5-4.5"></path></svg></button>
+          <button onClick="{{ enterFull }}" title="Write" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5"></path><path d="M16 3h5v5"></path><path d="M8 21H3v-5"></path><path d="M16 21h5v-5"></path></svg></button>
+          <button onClick="{{ printChapter }}" title="Print chapter" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg></button>
+          <button onClick="{{ downloadChapter }}" title="Download chapter" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg></button>
+          <button onClick="{{ toggleNotes }}" title="Notes" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:{{ notesIconColor }};cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg></button>
+          <button onClick="{{ askDelete }}" title="Delete chapter" style="display:flex;align-items:center;background:none;border:0;padding:6px 8px;font:inherit;color:#525252;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button>
+        </div>
+        <h1 ref="{{ titleRef }}" contentEditable="true" suppressContentEditableWarning="{{ true }}" onBlur="{{ onTitleBlur }}" onKeyDown="{{ onTitleKey }}" data-ph="Chapter title" style="font-size:36px;font-weight:700;letter-spacing:-0.02em;line-height:1.15;margin:0 0 40px"></h1>
+        <div ref="{{ editorRef }}" contentEditable="true" suppressContentEditableWarning="{{ true }}" spellCheck="{{ true }}" onInput="{{ onInput }}" onPaste="{{ onPaste }}" style="font-size:18px;line-height:1.75;min-height:50vh;white-space:pre-wrap;overflow-wrap:break-word;caret-color:#000"></div>
+      </div>
+    </main>
+    <sc-if value="{{ notesOpen }}" hint-placeholder-val="{{ false }}">
+      <aside style="border-left:1px solid #e5e7eb;position:sticky;top:0;height:100vh;box-sizing:border-box;display:flex;flex-direction:column;padding:24px 24px 40px">
+        <div style="display:flex;align-items:center;gap:4px;margin:0 0 16px -6px">
+          <button onClick="{{ toggleNotes }}" title="Close notes" style="display:flex;align-items:center;background:none;border:0;padding:6px 6px;font:inherit;color:#a3a3a3;cursor:pointer;border-radius:6px" style-hover="color:#000;background:#f5f5f5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button>
+          <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#a3a3a3">Notes</div>
+        </div>
+        <textarea ref="{{ notesRef }}" value="{{ notes }}" onChange="{{ onNotesChange }}" placeholder="Notes" spellCheck="{{ true }}" style="flex:1;border:0;outline:none;resize:none;background:none;padding:0;margin:0;font-family:{{ contentFont }};font-size:14px;line-height:1.7;color:#000"></textarea>
+      </aside>
+    </sc-if>
+  </div>
+  <div style="position:fixed;right:{{ wordsRight }};bottom:16px;font-size:13px;color:#a3a3a3">{{ wordsLabel }}</div>
+</sc-if>
+
+<input type="file" ref="{{ fileInputRef }}" webkitdirectory="" multiple="{{ true }}" onChange="{{ onFilesPicked }}" style="display:none">
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    libName: '', books: [], bookIdx: -1, currentId: null, folderOpen: false, booting: true, resumable: false, looseAlert: false,
+    isFull: false, printMenu: false, settingsOpen: false, confirmDelete: false, status: '',
+    renameIdx: -1, renameValue: '', renameMeta: {}, railCollapsed: localStorage.getItem('writer.rail') === 'min', notesOpen: localStorage.getItem('writer.notes') === 'open', findOpen: false, find: '', findIdx: 0, findCount: 0,
+    settings: { font: 'sans', size: 18, typewriter: true, dim: true, roll: 80, pageNums: false }, printScope: 'book'
+  };
+  editorRef = React.createRef(); titleRef = React.createRef(); scrollRef = React.createRef(); fileInputRef = React.createRef(); renameRef = React.createRef(); findRef = React.createRef(); notesRef = React.createRef(); findRanges = [];
+  libHandle = null; noFs = false; dragId = null; dirty = new Set(); saveTimer = null; needPerm = false; lastCfg = null; writing = 0; sigs = null; watchTimer = null; lastInput = 0; caretEnd = false;
+  palette = ['', '#d9d9d9', '#f5c2c2', '#f8d9a8', '#f6e7a1', '#c8e6c9', '#bfe0f5', '#d6ccf2', '#f5c8e2'];
+
+  componentDidMount() {
+    try {
+      const s = JSON.parse(localStorage.getItem('writer.lib.v3'));
+      if (s && s.settings) this.setState({ settings: { ...this.state.settings, ...s.settings } });
+    } catch (e) {}
+    this.boot();
+    document.addEventListener('pointerdown', this.onGesture, true);
+    document.addEventListener('keydown', this.onGesture, true);
+    document.addEventListener('selectionchange', this.onSel);
+    document.addEventListener('keydown', this.onKey);
+    document.addEventListener('fullscreenchange', this.onFsChange);
+    document.addEventListener('visibilitychange', this.onHide);
+    window.addEventListener('pagehide', this.onHide);
+    window.addEventListener('beforeunload', this.onUnload);
+    this.syncEditor();
+  }
+  onHide = e => { if (e.type === 'pagehide' || document.visibilityState === 'hidden') { clearTimeout(this.saveTimer); this.flushDisk(); } else if (document.visibilityState === 'visible') this.startWatch(300); };
+  onUnload = e => { if (this.dirty.size) { clearTimeout(this.saveTimer); this.flushDisk(); e.preventDefault(); e.returnValue = ''; } };
+  componentWillUnmount() {
+    document.removeEventListener('visibilitychange', this.onHide);
+    window.removeEventListener('pagehide', this.onHide);
+    window.removeEventListener('beforeunload', this.onUnload);
+    document.removeEventListener('selectionchange', this.onSel);
+    document.removeEventListener('keydown', this.onKey);
+    document.removeEventListener('fullscreenchange', this.onFsChange);
+  }
+  componentDidUpdate() { this.syncEditor(); }
+
+  book() { return this.state.books[this.state.bookIdx] || null; }
+  current() { const b = this.book(); if (!b) return null; return b.chapters.find(c => c.id === this.state.currentId) || b.chapters[0] || null; }
+  words(t) { return ((t || '').replace(/^(#{1,3}\s+|>\s?|[-*+]\s+|\d+[.)]\s+)/gm, '').replace(/^\s*[-*]{3,}\s*$/gm, '').replace(/[*_~`]/g, '').match(/\S+/g) || []).length; }
+  mdEsc(s) { return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(/\u00a0/g, '&nbsp;'); }
+  mdLine(s) {
+    let m;
+    if (/^\s*(-{3,}|\*{3,})\s*$/.test(s)) return { t: 'hr', mark: s, c: '' };
+    if ((m = /^(#{1,3})\s+(.*)$/.exec(s))) return { t: 'h' + m[1].length, mark: s.slice(0, s.length - m[2].length), c: m[2] };
+    if ((m = /^>\s?(.*)$/.exec(s))) return { t: 'q', mark: s.slice(0, s.length - m[1].length), c: m[1] };
+    if ((m = /^[-*+]\s+(.*)$/.exec(s))) return { t: 'ul', mark: s.slice(0, s.length - m[1].length), c: m[1] };
+    if ((m = /^\d+[.)]\s+(.*)$/.exec(s))) return { t: 'ol', mark: s.slice(0, s.length - m[1].length), c: m[1] };
+    return { t: 'p', mark: '', c: s };
+  }
+  mdInline(s, edit) {
+    const esc = this.mdEsc, mk = m => edit ? '<span style="color:#a3a3a3">' + esc(m) + '</span>' : '';
+    const re = /(`+)([^`]+?)\1|(\*\*|__)(?=\S)([\s\S]*?\S)\3|(~~)(?=\S)(.*?\S)\5|(?<!\w)(\*|_)(?=\S)([^*_]*?\S)\7(?!\w)/g;
+    let out = '', i = 0, m;
+    while ((m = re.exec(s))) {
+      out += esc(s.slice(i, m.index)); i = re.lastIndex;
+      if (m[1]) out += mk(m[1]) + '<code style="font-family:ui-monospace,Menlo,monospace;font-size:.9em;background:#f5f5f5;border-radius:4px;padding:0 .2em">' + esc(m[2]) + '</code>' + mk(m[1]);
+      else if (m[3]) out += mk(m[3]) + '<strong>' + esc(m[4]) + '</strong>' + mk(m[3]);
+      else if (m[5]) out += mk(m[5]) + '<s>' + esc(m[6]) + '</s>' + mk(m[5]);
+      else out += mk(m[7]) + '<em>' + esc(m[8]) + '</em>' + mk(m[7]);
+    }
+    return out + esc(s.slice(i));
+  }
+  mdHtml(text) {
+    let out = '';
+    for (const s of (text || '').split('\n')) {
+      const L = this.mdLine(s), inl = this.mdInline(L.c, false);
+      if (L.t === 'hr') out += '<hr>';
+      else if (L.t[0] === 'h') out += '<' + L.t + '>' + inl + '</' + L.t + '>';
+      else if (L.t === 'ul') out += '<p class="li">\u2022\u00a0' + inl + '</p>';
+      else if (L.t === 'ol') out += '<p class="li">' + this.mdEsc(L.mark.trim()) + '\u00a0' + inl + '</p>';
+      else if (L.t === 'q') out += '<p class="q">' + inl + '</p>';
+      else out += '<p>' + inl + '</p>';
+    }
+    return out;
+  }
+  lineStyles = {
+    h1: 'font-size:1.6em;font-weight:700;line-height:1.25;margin:.6em 0 .2em;letter-spacing:-0.01em', h2: 'font-size:1.3em;font-weight:600;line-height:1.3;margin:.5em 0 .15em',
+    h3: 'font-size:1.1em;font-weight:600;margin:.4em 0 .1em', q: 'padding-left:1em;border-left:2px solid #e5e7eb;color:#525252', ul: 'padding-left:1em', ol: 'padding-left:1em', hr: 'letter-spacing:.3em', p: '',
+  };
+  decorateAll(el) { for (const p of el.children) this.decorate(p); }
+  decorate(p) {
+    const text = p.textContent, L = this.mdLine(text);
+    const mk = m => m ? '<span style="color:#a3a3a3">' + this.mdEsc(m) + '</span>' : '';
+    const html = text ? mk(L.mark) + this.mdInline(L.c, true) : '<br>';
+    if (p.dataset.ls !== L.t) { p.style.cssText = 'margin:0;' + this.lineStyles[L.t]; p.dataset.ls = L.t; }
+    if (p.innerHTML === html) return;
+    const sel = window.getSelection(); let off = -1;
+    if (sel.rangeCount && sel.isCollapsed && p.contains(sel.anchorNode)) { const r = document.createRange(); r.selectNodeContents(p); r.setEnd(sel.anchorNode, sel.anchorOffset); off = r.toString().length; }
+    p.innerHTML = html;
+    if (off < 0) return;
+    const r = document.createRange(), w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT); let n, acc = 0, hit = false;
+    while ((n = w.nextNode())) { if (acc + n.length >= off) { r.setStart(n, off - acc); r.collapse(true); hit = true; break; } acc += n.length; }
+    if (!hit) { r.selectNodeContents(p); r.collapse(false); }
+    sel.removeAllRanges(); sel.addRange(r);
+  }
+  runFind() {
+    const el = this.editorRef.current, q = (this.state.find || '').toLowerCase();
+    if (!window.CSS || !CSS.highlights) return;
+    CSS.highlights.delete('wr-find'); CSS.highlights.delete('wr-cur');
+    const ranges = [];
+    if (el && q && this.state.findOpen) {
+      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n;
+      while ((n = w.nextNode())) { const t = n.data.toLowerCase(); let i = t.indexOf(q); while (i >= 0) { const r = new Range(); r.setStart(n, i); r.setEnd(n, i + q.length); ranges.push(r); i = t.indexOf(q, i + q.length); } }
+    }
+    this.findRanges = ranges;
+    if (!ranges.length) { if (this.state.findCount) this.setState({ findCount: 0 }); return; }
+    const idx = ((this.state.findIdx % ranges.length) + ranges.length) % ranges.length;
+    CSS.highlights.set('wr-find', new Highlight(...ranges));
+    CSS.highlights.set('wr-cur', new Highlight(ranges[idx]));
+    if (this.state.findCount !== ranges.length || this.state.findIdx !== idx) this.setState({ findCount: ranges.length, findIdx: idx });
+  }
+  findStep(d) {
+    const n = this.findRanges ? this.findRanges.length : 0; if (!n) return;
+    const idx = (((this.state.findIdx + d) % n) + n) % n;
+    this.setState({ findIdx: idx }, () => {
+      this.runFind();
+      const rect = this.findRanges[idx].getBoundingClientRect(), delta = rect.top + rect.height / 2 - window.innerHeight / 2;
+      window.scrollBy({ top: delta, behavior: 'smooth' });
+    });
+  }
+  toggleFind = () => this.setState(s => ({ findOpen: !s.findOpen, findIdx: 0 }), () => { this.runFind(); const i = this.findRef.current; if (i && this.state.findOpen) i.focus(); });
+  onFindChange = e => this.setState({ find: e.target.value, findIdx: 0 }, () => this.runFind());
+  onFindKey = e => {
+    if (e.key === 'Enter') { e.preventDefault(); this.findStep(e.shiftKey ? -1 : 1); }
+    else if (e.key === 'Escape') { e.stopPropagation(); this.setState({ findOpen: false }, () => { this.runFind(); const ed = this.editorRef.current; if (ed) ed.focus(); }); }
+  };
+  findPrev = () => this.findStep(-1);
+  findNext = () => this.findStep(1);
+  fontFamily() {
+    const f = this.state.settings.font;
+    return f === 'serif' ? "Georgia, 'Iowan Old Style', 'Times New Roman', serif" : f === 'courier' ? "'Courier Prime', 'Courier New', Courier, monospace" : f === 'mono' ? "'SF Mono', Menlo, Consolas, monospace" : 'Inter, -apple-system, sans-serif';
+  }
+
+  syncEditor() {
+    const b = this.book(), ch = this.current();
+    const ff = this.fontFamily();
+    document.body.style.fontFamily = '';
+    const t = this.titleRef.current;
+    if (t) t.style.fontFamily = ff;
+    if (t && document.activeElement !== t) { const v = ch ? ch.title : ''; if (t.textContent !== v) t.textContent = v; }
+    const el = this.editorRef.current; if (!el) return;
+    const key = (b ? b.name : '') + '/' + (ch ? ch.id : 'none') + '|' + (this.state.isFull ? 'F' : 'N');
+    el.style.fontFamily = this.fontFamily();
+    el.style.fontSize = this.state.settings.size + 'px';
+    if (el.dataset.key === key) return;
+    el.dataset.key = key;
+    el.innerHTML = '';
+    const paras = ch && ch.text ? ch.text.split('\n') : [''];
+    for (const p of paras) {
+      const node = document.createElement('p'); node.style.margin = '0';
+      if (p) node.textContent = p; else node.appendChild(document.createElement('br'));
+      el.appendChild(node);
+    }
+    this.decorateAll(el);
+    if (this.state.findOpen) this.runFind();
+    if (!this.state.isFull && this.caretEnd) {
+      this.caretEnd = false;
+      const last = el.lastElementChild, r = document.createRange(), s = window.getSelection();
+      r.selectNodeContents(last); r.collapse(false); s.removeAllRanges(); s.addRange(r);
+      el.focus({ preventScroll: true }); last.scrollIntoView({ block: 'nearest' });
+    }
+    if (this.state.isFull) {
+      const last = el.lastElementChild, r = document.createRange(), s = window.getSelection();
+      r.selectNodeContents(last); r.collapse(false); s.removeAllRanges(); s.addRange(r);
+      el.focus();
+      if (this.state.settings.typewriter) requestAnimationFrame(() => this.applyAids()); else { this.applyAids(); const sc = this.scrollRef.current; if (sc) sc.scrollTop = 0; }
+    }
+  }
+  serialize(el) {
+    const kids = Array.from(el.children);
+    const txt = k => k.innerText.replace(/\n+$/, '');
+    if (!kids.length) return txt(el);
+    return kids.map(txt).join('\n');
+  }
+  applyAids() {
+    const el = this.editorRef.current; if (!el || !this.state.isFull) return;
+    const sel = window.getSelection(); if (!sel.rangeCount || !el.contains(sel.anchorNode)) return;
+    let block = sel.anchorNode; while (block && block.parentNode !== el) block = block.parentNode;
+    for (const k of el.children) k.style.opacity = this.state.settings.dim && block && k !== block ? '0.3' : '1';
+    if (this.state.settings.typewriter && block) {
+      let rect = sel.getRangeAt(0).getBoundingClientRect();
+      if (!rect.height) rect = block.getBoundingClientRect();
+      const sc = this.scrollRef.current; if (!sc) return;
+      const delta = rect.top + rect.height / 2 - window.innerHeight / 2;
+      if (Math.abs(delta) > 2) sc.scrollBy({ top: delta });
+    }
+  }
+  onSel = () => this.applyAids();
+
+  update(fn, extra) {
+    this.setState(s => {
+      const books = s.books.map(b => ({ ...b, chapters: b.chapters.map(c => ({ ...c })) }));
+      const r = fn(books, s) || {};
+      return { books, ...r, ...(extra ? extra(books, s) : {}) };
+    }, this.persist);
+  }
+  async readConfig(lib) {
+    try { const fh = await lib.getFileHandle('writer.json'); const cfg = JSON.parse(await (await fh.getFile()).text()); return cfg && typeof cfg === 'object' ? cfg : null; } catch (e) { return null; }
+  }
+  async applyConfig(lib) {
+    const cfg = await this.readConfig(lib);
+    this.lastCfg = null;
+    if (cfg && cfg.settings && typeof cfg.settings === 'object') {
+      const settings = { ...this.state.settings, ...cfg.settings };
+      this.lastCfg = JSON.stringify({ settings });
+      this.setState({ settings });
+    }
+  }
+  writeConfig = async () => {
+    const lib = this.libHandle; if (!lib || typeof lib.getFileHandle !== 'function') return;
+    const json = JSON.stringify({ settings: this.state.settings });
+    if (json === this.lastCfg) return; this.lastCfg = json;
+    this.writing++;
+    try { const fh = await lib.getFileHandle('writer.json', { create: true }), w = await fh.createWritable(); await w.write(JSON.stringify({ settings: this.state.settings }, null, 2) + '\n'); await w.close(); if (this.sigs) { const f = await fh.getFile(); this.sigs.set('', f.lastModified + ':' + f.size); } }
+    catch (e) { console.error(e); this.lastCfg = null; }
+    finally { this.writing--; }
+  };
+  persist = () => {
+    try { localStorage.setItem('writer.lib.v3', JSON.stringify({ settings: this.state.settings })); } catch (e) {}
+    this.writeConfig();
+    clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(this.flushDisk, 800);
+  };
+  async ensureWrite() {
+    const h = this.libHandle; if (!h) return false; if (typeof h.queryPermission !== 'function') return true;
+    try {
+      if (await h.queryPermission({ mode: 'readwrite' }) === 'granted') return true;
+      if (await h.requestPermission({ mode: 'readwrite' }) === 'granted') return true;
+    } catch (e) {}
+    this.needPerm = true; return false;
+  }
+  onGesture = () => { if (this.needPerm && this.libHandle) { this.needPerm = false; this.ensureWrite().then(ok => { if (ok && this.dirty.size) this.flushDisk(); }); } };
+  flushDisk = async () => {
+    if (!this.libHandle || !this.dirty.size) return;
+    if (!await this.ensureWrite()) { this.flash('Save failed'); return; }
+    const names = [...this.dirty]; this.dirty.clear();
+    try {
+      for (const name of names) { const b = this.state.books.find(x => x.name === name); if (b) await this.writeBook(b); }
+      this.flash('Saved ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+    } catch (e) { console.error(e); this.flash('Save failed'); }
+  };
+  async writeBook(b) {
+    this.writing++;
+    try { await this.writeBookFiles(b); } finally { this.writing--; }
+  }
+  async writeBookFiles(b) {
+    const dir = await this.libHandle.getDirectoryHandle(b.name, { create: true }), keep = new Set();
+    for (let i = 0; i < b.chapters.length; i++) {
+      const name = this.slug(i, b.chapters[i].title); keep.add(name);
+      const fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable();
+      await w.write(this.toMd(b.chapters[i])); await w.close();
+      const notes = (b.chapters[i].notes || '').trim();
+      if (notes) { const nn = this.notesName(name); keep.add(nn); const nh = await dir.getFileHandle(nn, { create: true }), nw = await nh.createWritable(); await nw.write(notes + '\n'); await nw.close(); }
+    }
+    for await (const [name, entry] of dir.entries()) if (entry.kind === 'file' && /^\d{2}-.*\.md$/.test(name) && !keep.has(name)) await dir.removeEntry(name);
+    const mj = this.metaJson(b);
+    if (mj) { const mh = await dir.getFileHandle('book.json', { create: true }), mw = await mh.createWritable(); await mw.write(mj); await mw.close(); }
+    else { try { await dir.removeEntry('book.json'); } catch (e) {} }
+    if (this.sigs) this.sigs.set(b.name, await this.bookSig(dir));
+  }
+  markDirty() { const b = this.book(); if (b) this.dirty.add(b.name); }
+  flash(msg) { this.setState({ status: msg }); clearTimeout(this.flashTimer); this.flashTimer = setTimeout(() => this.setState({ status: '' }), 4000); }
+
+  onInput = e => {
+    const text = this.serialize(e.currentTarget), ch = this.current(); if (!ch) return;
+    this.lastInput = Date.now(); this.markDirty();
+    if (!e.nativeEvent || !e.nativeEvent.isComposing) this.decorateAll(e.currentTarget);
+    this.update((books, s) => { const c = books[s.bookIdx].chapters.find(x => x.id === ch.id); if (c) c.text = text; });
+    this.applyAids();
+    if (this.state.findOpen) this.runFind();
+  };
+  onPaste = e => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain').replace(/\r\n?/g, '\n');
+    const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const lines = text.split('\n');
+    if (lines.length === 1) { document.execCommand('insertText', false, text); return; }
+    const html = lines.map(l => '<p style="margin:0">' + (l ? esc(l) : '<br>') + '</p>').join('');
+    document.execCommand('insertHTML', false, html);
+  };
+  toggleNotes = () => this.setState(s => { const v = !s.notesOpen; try { localStorage.setItem('writer.notes', v ? 'open' : 'closed'); } catch (e) {} return { notesOpen: v }; }, () => { const t = this.notesRef.current; if (t && this.state.notesOpen) t.focus(); });
+  onNotesChange = e => {
+    const v = e.target.value, ch = this.current(); if (!ch) return;
+    this.markDirty();
+    this.update((books, s) => { const c = books[s.bookIdx].chapters.find(x => x.id === ch.id); if (c) c.notes = v; });
+  };
+  onTitleBlur = e => {
+    const t = e.currentTarget.textContent.trim(); e.currentTarget.textContent = t; const ch = this.current(); if (!ch || ch.title === t) return;
+    this.markDirty(); this.update((books, s) => { const c = books[s.bookIdx].chapters.find(x => x.id === ch.id); if (c) c.title = t; });
+  };
+  onTitleKey = e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); const ed = this.editorRef.current; if (ed) ed.focus(); } };
+
+  onKey = e => {
+    if (this.state.looseAlert) { if (e.key === 'Escape') this.closeAlert(); return; }
+    if (!this.state.folderOpen) return;
+    if (e.key === 'Escape') { if (this.state.isFull) this.exitFull(); else if (this.state.confirmDelete) this.setState({ confirmDelete: false }); else this.setState({ printMenu: false, settingsOpen: false, renameIdx: -1 }); }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); this.saveNow(); }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && this.state.bookIdx >= 0 && !this.state.isFull) {
+      e.preventDefault();
+      if (this.state.findOpen) { const i = this.findRef.current; if (i) { i.focus(); i.select(); } } else this.toggleFind();
+    }
+  };
+  saveNow = () => { const b = this.book(); if (!b) return; if (this.libHandle) { this.dirty.add(b.name); clearTimeout(this.saveTimer); this.flushDisk(); } else this.download(); };
+  download() {
+    const ch = this.current(), b = this.book(); if (!ch) return;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([this.toMd(ch)], { type: 'text/markdown' }));
+    a.download = this.slug(b.chapters.indexOf(ch), ch.title); a.click(); URL.revokeObjectURL(a.href); this.flash('Downloaded');
+  }
+  onFsChange = () => { if (!document.fullscreenElement && this.state.isFull) this.setState({ isFull: false }); };
+  enterFull = () => { if (!this.current()) return; this.setState({ isFull: true }); try { document.documentElement.requestFullscreen().catch(() => {}); } catch (e) {} };
+  exitFull = () => { this.setState({ isFull: false }); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
+  stop = e => e.stopPropagation();
+  closeMenus = () => this.setState({ printMenu: false, settingsOpen: false, confirmDelete: false, renameIdx: -1 });
+  openBookSettings = () => { if (this.book()) this.startRename(this.state.bookIdx); };
+  loose = () => this.setState({ looseAlert: true, settingsOpen: false });
+  closeAlert = () => this.setState({ looseAlert: false });
+  openSettings = () => this.setState({ settingsOpen: true });
+  logOut = async () => {
+    clearTimeout(this.saveTimer); await this.flushDisk();
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    this.stopWatch(); this.sigs = null; this.libHandle = null; this.dirty.clear(); await this.forget();
+    this.setState({ folderOpen: false, resumable: false, libName: '', books: [], bookIdx: -1, currentId: null, isFull: false, settingsOpen: false, printMenu: false, confirmDelete: false, findOpen: false, renameIdx: -1, status: '' });
+  };
+  setSetting(k, v) { this.setState(s => ({ settings: { ...s.settings, [k]: v } }), this.persist); }
+
+  // ---- shelf
+  backToShelf = () => { clearTimeout(this.saveTimer); this.flushDisk(); this.setState({ bookIdx: -1, currentId: null }); };
+  openBook(i) {
+    clearTimeout(this.openTimer);
+    this.openTimer = setTimeout(() => { const b = this.state.books[i]; if (b) this.setState({ bookIdx: i, currentId: b.chapters[0] ? b.chapters[0].id : null, renameIdx: -1 }); }, 220);
+  }
+  newBook = () => {
+    if (!this.state.libName) { this.flash('Choose a folder first'); return; }
+    this.setState({ renameIdx: -2, renameValue: '', renameMeta: {} });
+    setTimeout(() => { const r = this.renameRef.current; if (r) r.focus(); }, 50);
+  };
+  startRename(i) { clearTimeout(this.openTimer); this.setState({ renameIdx: i, renameValue: this.state.books[i].name, renameMeta: { ...(this.state.books[i].meta || {}) } }); setTimeout(() => { const r = this.renameRef.current; if (r) { r.focus(); r.select(); } }, 50); }
+  onRenameChange = e => this.setState({ renameValue: e.target.value });
+  onRenameKey = e => { if (e.key === 'Enter') this.commitRename(); if (e.key === 'Escape') this.cancelRename(); };
+  cancelRename = () => this.setState({ renameIdx: -1 });
+  commitRename = async () => {
+    const i = this.state.renameIdx, t = this.state.renameValue.trim().replace(/[\\/:*?"<>|]/g, ''), meta = this.cleanMeta(this.state.renameMeta);
+    if (i === -2) {
+      if (!t) return this.cancelRename();
+      if (this.state.books.some(x => x.name === t)) return this.flash('Name in use');
+      const b = { name: t, chapters: [{ id: 'c' + Date.now(), title: '', text: '' }], meta };
+      if (this.libHandle) {
+        if (!await this.ensureWrite()) { this.flash('Could not create'); return; }
+        try { await this.writeBook(b); } catch (e) { console.error(e); this.flash('Could not create'); return; }
+      }
+      this.update(books => { books.push(b); return { renameIdx: -1 }; });
+      return;
+    }
+    const b = this.state.books[i]; if (!b) return;
+    if (!t) return this.cancelRename();
+    if (t !== b.name && this.state.books.some((x, j) => j !== i && x.name === t)) return this.flash('Name in use');
+    if (this.libHandle) {
+      if (!await this.ensureWrite()) { this.flash('Rename failed'); return; }
+      this.writing++;
+      try { await this.writeBook({ ...b, name: t, meta }); if (t !== b.name) { await this.libHandle.removeEntry(b.name, { recursive: true }); if (this.sigs) this.sigs.delete(b.name); } } catch (e) { console.error(e); this.flash('Rename failed'); return; } finally { this.writing--; }
+      this.dirty.delete(b.name);
+    }
+    this.update(books => { books[i].name = t; books[i].meta = meta; return { renameIdx: -1 }; });
+  };
+  onGoalChange = e => { const v = e.target.value; this.setState(s => ({ renameMeta: { ...s.renameMeta, wordGoal: v } })); };
+  pickColor = c => this.setState(s => { const m = { ...s.renameMeta }; if (c) m.color = c; else delete m.color; return { renameMeta: m }; });
+
+  newChapter = () => {
+    if (!this.book()) return;
+    const id = 'c' + Date.now(); this.markDirty();
+    this.update((books, s) => { books[s.bookIdx].chapters.push({ id, title: '', text: '' }); return { currentId: id }; });
+    setTimeout(() => { const t = this.titleRef.current; if (t) t.focus(); }, 50);
+  };
+  askDelete = () => { if (this.current()) this.setState({ confirmDelete: true, confirmBook: false }); };
+  askDeleteBook = () => { if (this.state.books[this.state.renameIdx]) this.setState({ confirmDelete: true, confirmBook: true }); };
+  deleteBook = async () => {
+    const i = this.state.renameIdx, b = this.state.books[i]; if (!b) return;
+    this.setState({ confirmDelete: false });
+    if (this.libHandle) { if (!await this.ensureWrite()) { this.flash('Delete failed'); return; } this.writing++; try { await this.libHandle.removeEntry(b.name, { recursive: true }); if (this.sigs) this.sigs.delete(b.name); } catch (e) { console.error(e); this.flash('Delete failed'); return; } finally { this.writing--; } }
+    this.dirty.delete(b.name);
+    this.update((books, s) => { books.splice(i, 1); const bi = s.bookIdx === i ? -1 : s.bookIdx > i ? s.bookIdx - 1 : s.bookIdx; return { renameIdx: -1, bookIdx: bi, currentId: s.bookIdx === i ? null : s.currentId }; });
+  };
+  deleteChapter = () => {
+    const ch = this.current(); if (!ch) return;
+    this.setState({ confirmDelete: false }); this.markDirty();
+    this.update((books, s) => {
+      const b = books[s.bookIdx]; b.chapters = b.chapters.filter(c => c.id !== ch.id);
+      if (!b.chapters.length) b.chapters.push({ id: 'c' + Date.now(), title: '', text: '' });
+      return { currentId: b.chapters[0].id };
+    });
+  };
+  move(fromId, toId) {
+    if (!fromId || !toId || fromId === toId) return; this.markDirty();
+    this.update((books, s) => {
+      const ch = books[s.bookIdx].chapters, from = ch.findIndex(c => c.id === fromId), to = ch.findIndex(c => c.id === toId);
+      const [it] = ch.splice(from, 1); ch.splice(to, 0, it);
+    });
+  }
+
+  // ---- disk: folder → one subfolder per book → NN-title.md per chapter
+  slug(i, t) { return String(i + 1).padStart(2, '0') + '-' + ((t || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled') + '.md'; }
+  notesName(slug) { return slug.replace(/\.md$/, '.notes.md'); }
+  toMd(ch) { return '# ' + (ch.title || 'Untitled') + '\n\n' + (ch.text || '') + '\n'; }
+  fromMd(name, text) {
+    const m = text.match(/^#\s+(.+)\n+/); const title = m ? m[1].trim() : name.replace(/^\d+-/, '').replace(/\.(md|txt)$/i, '').replace(/-/g, ' ');
+    const body = (m ? text.slice(m[0].length) : text).replace(/\s+$/, '');
+    return { id: 'c' + Math.random().toString(36).slice(2), title, text: body };
+  }
+  open = async () => {
+    if (window.showDirectoryPicker && !this.noFs) {
+      try {
+        const lib = await window.showDirectoryPicker({ mode: 'readwrite' });
+        const books = await this.readLib(lib);
+        await this.applyConfig(lib); this.sigs = await this.diskSigs(lib);
+        this.libHandle = lib; await this.remember(lib);
+        this.setState({ booting: false, resumable: false }); this.loadLibrary(lib.name, books); return;
+      } catch (e) { if (e.name === 'AbortError') return; if (e.name === 'LooseFiles') { this.loose(); return; } this.noFs = true; }
+    }
+    this.fileInputRef.current.click();
+  };
+  onFilesPicked = async e => {
+    const all = Array.from(e.target.files).filter(f => /\.(md|txt)$/i.test(f.name) || /^book\.json$/i.test(f.name));
+    if (all.some(f => f.webkitRelativePath.split('/').length === 2 && /\.(md|txt)$/i.test(f.name))) { this.loose(); e.target.value = ''; return; }
+    const list = all.filter(f => f.webkitRelativePath.split('/').length >= 3);
+    const byBook = new Map(); let libName = '';
+    for (const f of list) {
+      const parts = f.webkitRelativePath.split('/'); libName = parts[0];
+      if (!byBook.has(parts[1])) byBook.set(parts[1], []);
+      byBook.get(parts[1]).push({ name: f.name, text: await f.text() });
+    }
+    const books = [...byBook].map(([name, files]) => this.makeBook(name, files));
+    this.loadLibrary(libName, books); e.target.value = '';
+  };
+  cleanMeta(m) {
+    const o = m && typeof m === 'object' ? { ...m } : {};
+    const g = parseInt(o.wordGoal, 10); if (g > 0) o.wordGoal = g; else delete o.wordGoal;
+    if (!/^#[0-9a-f]{6}$/i.test(o.color || '')) delete o.color;
+    return o;
+  }
+  metaJson(b) { const m = this.cleanMeta(b.meta); return Object.keys(m).length ? JSON.stringify(m, null, 2) + '\n' : ''; }
+  makeBook(name, files) {
+    const notes = new Map(); let meta = {};
+    files = files.filter(f => {
+      if (/^book\.json$/i.test(f.name)) { try { meta = this.cleanMeta(JSON.parse(f.text)); } catch (e) {} return false; }
+      const m = /^(.*)\.notes\.md$/i.exec(f.name); if (m) { notes.set(m[1].toLowerCase(), f.text.replace(/\s+$/, '')); return false; } return true;
+    });
+    files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    const chapters = files.map(f => { const c = this.fromMd(f.name, f.text); const n = notes.get(f.name.replace(/\.(md|txt)$/i, '').toLowerCase()); if (n) c.notes = n; return c; });
+    if (!chapters.length) chapters.push({ id: 'c' + Math.random().toString(36).slice(2), title: '', text: '' });
+    return { name, chapters, meta };
+  }
+  loadLibrary(libName, books) {
+    books.sort((a, b) => a.name.localeCompare(b.name));
+    this.dirty.clear(); clearTimeout(this.saveTimer);
+    this.setState({ libName, books, bookIdx: -1, currentId: null, settingsOpen: false, folderOpen: true }, () => { this.persist(); this.startWatch(); });
+  }
+
+  // ---- remembered folder: only the directory handle lives in IndexedDB; books are always read from disk
+  idb(mode, fn) {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('writer', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onerror = () => rej(r.error);
+      r.onsuccess = () => {
+        const db = r.result, tx = db.transaction('kv', mode), q = fn(tx.objectStore('kv'));
+        tx.oncomplete = () => { db.close(); res(q.result); };
+        tx.onerror = () => { db.close(); rej(tx.error); };
+      };
+    });
+  }
+  remember(h) { return this.idb('readwrite', s => s.put(h, 'lib')).catch(() => {}); }
+  forget() { return this.idb('readwrite', s => s.delete('lib')).catch(() => {}); }
+  boot = async () => {
+    let h = null;
+    try { h = await this.idb('readonly', s => s.get('lib')); } catch (e) {}
+    if (!h || typeof h.queryPermission !== 'function') { this.setState({ booting: false }); return; }
+    this.libHandle = h;
+    const p = await h.queryPermission({ mode: 'readwrite' }).catch(() => 'denied');
+    if (p === 'granted') await this.openRemembered(); else this.setState({ booting: false, resumable: p === 'prompt' });
+  };
+  resume = async () => {
+    const h = this.libHandle; if (!h) return this.open();
+    const p = await h.requestPermission({ mode: 'readwrite' }).catch(() => 'denied');
+    if (p === 'granted') await this.openRemembered(); else this.flash('Could not open');
+  };
+  async openRemembered() {
+    try {
+      const books = await this.readLib(this.libHandle);
+      await this.applyConfig(this.libHandle); this.sigs = await this.diskSigs(this.libHandle);
+      this.setState({ booting: false, resumable: false }); this.loadLibrary(this.libHandle.name, books);
+    } catch (e) {
+      if (e.name === 'LooseFiles') { this.setState({ booting: false, resumable: true }); this.loose(); return; }
+      this.libHandle = null; await this.forget();
+      this.setState({ booting: false, resumable: false }); this.flash('Folder not found');
+    }
+  }
+
+  // ---- sync: write every book missing or differing on disk, pull in folders the app doesn't know
+  looseError() { const e = new Error('loose'); e.name = 'LooseFiles'; return e; }
+  isBookFile(n) { return /\.(md|txt)$/i.test(n) || /^book\.json$/i.test(n); }
+  async readFiles(dir) {
+    const files = [];
+    for await (const [fname, fe] of dir.entries()) if (fe.kind === 'file' && this.isBookFile(fname)) files.push({ name: fname, text: await (await fe.getFile()).text() });
+    return files;
+  }
+
+  // ---- watch the folder: poll file stamps while visible; disk wins for any book with nothing pending here
+  async bookSig(dir) {
+    const parts = [];
+    for await (const [fname, fe] of dir.entries()) { if (fe.kind !== 'file' || !this.isBookFile(fname)) continue; const f = await fe.getFile(); parts.push(fname + ':' + f.lastModified + ':' + f.size); }
+    return parts.sort().join('|');
+  }
+  async diskSigs(lib) {
+    const sigs = new Map();
+    for await (const [bname, entry] of lib.entries()) { if (bname.startsWith('.') || entry.kind !== 'directory') continue; sigs.set(bname, await this.bookSig(entry)); }
+    try { const f = await (await lib.getFileHandle('writer.json')).getFile(); sigs.set('', f.lastModified + ':' + f.size); } catch (e) { sigs.set('', ''); }
+    return sigs;
+  }
+  startWatch(delay) { this.stopWatch(); if (this.libHandle && this.state.folderOpen) this.watchTimer = setTimeout(this.watchTick, delay == null ? 3000 : delay); }
+  stopWatch() { clearTimeout(this.watchTimer); this.watchTimer = null; }
+  watchTick = async () => {
+    this.watchTimer = null;
+    try { if (this.libHandle && this.state.folderOpen && document.visibilityState === 'visible' && !this.writing) await this.pullDisk(); } catch (e) { console.error(e); }
+    this.startWatch();
+  };
+  flagCaret(on) {
+    const a = document.activeElement;
+    this.caretEnd = !!on && (a === this.editorRef.current || a === document.body || a === null);
+    setTimeout(() => { this.caretEnd = false; }, 0);
+  }
+  repoint(books, s, reloaded) {
+    const cur = s.books[s.bookIdx], curName = cur ? cur.name : null, curIdx = cur ? cur.chapters.findIndex(c => c.id === s.currentId) : -1;
+    const r = {}; if (!curName) return r;
+    const i = books.findIndex(b => b.name === curName);
+    if (i < 0) { r.bookIdx = -1; r.currentId = null; if (s.isFull) { r.isFull = false; if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } return r; }
+    r.bookIdx = i;
+    if (reloaded.has(curName)) { const ch = books[i].chapters; r.currentId = (ch[Math.min(Math.max(curIdx, 0), ch.length - 1)] || {}).id || null; }
+    return r;
+  }
+  async pullDisk() {
+    const lib = this.libHandle, sigs = await this.diskSigs(lib);
+    if (this.writing) return;
+    const old = this.sigs; this.sigs = sigs;
+    if (!old) return;
+    if (sigs.get('') && sigs.get('') !== old.get('')) {
+      const cfg = await this.readConfig(lib);
+      if (cfg && cfg.settings && typeof cfg.settings === 'object') { const settings = { ...this.state.settings, ...cfg.settings }; this.lastCfg = JSON.stringify({ settings }); this.setState({ settings }, this.persist); }
+    }
+    const curBook = this.book(), curName = curBook ? curBook.name : null;
+    const fresh = new Map(), removed = [];
+    for (const [name, sig] of sigs) {
+      if (name === '' || (old.has(name) && old.get(name) === sig)) continue;
+      if (this.dirty.has(name) || (name === curName && Date.now() - this.lastInput < 2000)) { if (old.has(name)) sigs.set(name, old.get(name)); else sigs.delete(name); continue; }
+      fresh.set(name, this.makeBook(name, await this.readFiles(await lib.getDirectoryHandle(name))));
+    }
+    for (const name of old.keys()) if (name && !sigs.has(name)) { if (this.dirty.has(name)) sigs.set(name, old.get(name)); else removed.push(name); }
+    if (!fresh.size && !removed.length) return;
+    this.flagCaret(curName && fresh.has(curName));
+    this.update((books, s) => {
+      for (const name of removed) { const i = books.findIndex(b => b.name === name); if (i >= 0) books.splice(i, 1); }
+      for (const [name, b] of fresh) { const i = books.findIndex(x => x.name === name); if (i >= 0) books[i] = b; else books.push(b); }
+      books.sort((a, b) => a.name.localeCompare(b.name));
+      return this.repoint(books, s, fresh);
+    });
+  }
+  async readLib(lib) {
+    const books = [];
+    for await (const [bname, entry] of lib.entries()) {
+      if (bname.startsWith('.')) continue;
+      if (entry.kind === 'file') { if (/\.(md|txt)$/i.test(bname)) throw this.looseError(); continue; }
+      books.push(this.makeBook(bname, await this.readFiles(entry)));
+    }
+    return books;
+  }
+  bookKey(b) { return b.chapters.map((c, i) => this.slug(i, c.title) + '\u0000' + this.toMd(c) + '\u0000' + (c.notes || '')).join('\u0001') + '\u0002' + this.metaJson(b); }
+  sync = async () => {
+    if (!this.libHandle) { this.flash('Open the folder in Chrome or Edge to sync'); return; }
+    this.setState({ status: 'Syncing' });
+    try {
+      clearTimeout(this.saveTimer); await this.flushDisk();
+      const books = await this.readLib(this.libHandle);
+      await this.applyConfig(this.libHandle); this.sigs = await this.diskSigs(this.libHandle);
+      books.sort((a, b) => a.name.localeCompare(b.name));
+      this.flagCaret(!!this.book());
+      this.update((old, s) => { old.length = 0; old.push(...books); return this.repoint(old, s, new Set(books.map(b => b.name))); });
+      this.dirty.clear();
+      this.flash('Up to date');
+    } catch (e) { if (e.name === 'LooseFiles') this.loose(); else { console.error(e); this.flash('Sync failed'); } }
+  };
+
+  printChapter = () => this.setState({ printMenu: true, printScope: 'chapter' });
+  printBook = () => this.setState({ printMenu: true, printScope: 'book' });
+  saveBlob(name, text) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
+    a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  downloadChapter = () => {
+    const b = this.book(), cur = this.current(); if (!b || !cur) return;
+    this.saveBlob((b.name + ' — ' + (cur.title || 'Untitled')).replace(/[\\/:*?"<>|]/g, '-') + '.md', this.toMd(cur));
+    this.flash('Downloaded');
+  };
+  zip(files) {
+    const enc = new TextEncoder(), tbl = new Int32Array(256);
+    for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; tbl[i] = c; }
+    const crc = d => { let c = -1; for (let i = 0; i < d.length; i++) c = tbl[(c ^ d[i]) & 255] ^ (c >>> 8); return (c ^ -1) >>> 0; };
+    const now = new Date(), dt = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate(), tm = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const parts = [], cd = []; let off = 0;
+    const u16 = v => [v & 255, (v >>> 8) & 255], u32 = v => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+    for (const [name, text] of files) {
+      const n = enc.encode(name), d = enc.encode(text), c = crc(d);
+      const hdr = new Uint8Array([...u32(0x04034b50), ...u16(20), ...u16(0x800), ...u16(0), ...u16(tm), ...u16(dt), ...u32(c), ...u32(d.length), ...u32(d.length), ...u16(n.length), ...u16(0), ...n]);
+      cd.push(new Uint8Array([...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(0x800), ...u16(0), ...u16(tm), ...u16(dt), ...u32(c), ...u32(d.length), ...u32(d.length), ...u16(n.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(off), ...n]));
+      parts.push(hdr, d); off += hdr.length + d.length;
+    }
+    const cdLen = cd.reduce((s, x) => s + x.length, 0);
+    const end = new Uint8Array([...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(cdLen), ...u32(off), ...u16(0)]);
+    return new Blob([...parts, ...cd, end], { type: 'application/zip' });
+  }
+  downloadBook = () => {
+    const b = this.book(); if (!b || !b.chapters.length) return;
+    const folder = b.name.replace(/[\\/:*?"<>|]/g, '-');
+    const files = [];
+    b.chapters.forEach((c, i) => { const s = this.slug(i, c.title); files.push([folder + '/' + s, this.toMd(c)]); if ((c.notes || '').trim()) files.push([folder + '/' + this.notesName(s), c.notes.trim() + '\n']); });
+    const mj = this.metaJson(b); if (mj) files.push([folder + '/book.json', mj]);
+    const blob = this.zip(files);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = folder + '.zip'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    this.flash('Downloaded');
+  };
+  printReceipt = () => this.doPrint(this.state.printScope, 'receipt');
+  printPaper = () => this.doPrint(this.state.printScope, 'paper');
+  doPrint(scope, mode) {
+    const b = this.book(), cur = this.current(); if (!b) return;
+    const list = scope === 'chapter' ? (cur ? [cur] : []) : b.chapters;
+    const esc = s => String(s || '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const w = this.state.settings.roll, receipt = mode === 'receipt', ff = this.fontFamily();
+    const paged = !receipt && !!this.state.settings.pageNums;
+    const html = list.map((c, i) => '<div class="ch ch' + i + '">' + (i === 0 && !paged ? '<div class="bt">' + esc(b.name) + '</div>' : '') +
+      '<div class="ct">' + esc(c.title || 'Untitled') + '</div>' + this.mdHtml(c.text) + '<div class="tail"></div></div>').join('');
+    const base = 'html,body{margin:0}body{color:#000;background:#fff;font-family:' + ff + '}p{margin:0;min-height:1.4em;white-space:pre-wrap;overflow-wrap:break-word}.bt{font-weight:700;margin:0 0 6mm}.ct{font-weight:600;margin:0 0 3mm}.ch{break-after:page;page-break-after:always}.ch:last-child{break-after:auto;page-break-after:auto}' +
+      'h1,h2,h3{font-weight:600;line-height:1.3;break-after:avoid}h1{font-size:1.5em;margin:.8em 0 .3em}h2{font-size:1.25em;margin:.7em 0 .2em}h3{font-size:1.1em;margin:.6em 0 .2em}.q{padding-left:1em;border-left:1px solid #000}.li{padding-left:1.4em;text-indent:-1.4em}hr{border:0;border-top:1px solid #000;margin:.8em 0}code{font-family:ui-monospace,Menlo,monospace;font-size:.9em}';
+    const letterSize = 'body{font-size:' + Math.round(this.state.settings.size * 0.67) + 'pt;line-height:1.6}.tail{display:none}';
+    const css = receipt
+      ? base + '@page{margin:2mm 3mm}body{font-size:' + Math.round(this.state.settings.size * 0.5) + 'pt;line-height:1.4}.ch{break-inside:avoid}.tail{height:1.5in;display:flex;align-items:flex-end;justify-content:center;color:#000;font-size:6pt;line-height:1}.tail:after{content:"·"}'
+      : paged
+        ? base + letterSize + '@page{margin:25mm;@top-center{content:"' + b.name.replace(/[\\"]/g, '\\$&') + '";font-family:' + ff + ';font-size:9pt;color:#000;vertical-align:bottom;padding-bottom:10mm}@bottom-center{content:counter(page);font-family:' + ff + ';font-size:9pt;color:#000;vertical-align:top;padding-top:10mm}}'
+        : base + letterSize + '@page{margin:25mm}';
+    const old = document.getElementById('wr-pf'); if (old) old.remove();
+    const f = document.createElement('iframe'); f.id = 'wr-pf'; f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(f);
+    const d = f.contentDocument;
+    const docTitle = scope === 'chapter' && cur ? b.name + ' — ' + (cur.title || 'Untitled') : b.name;
+    d.open(); d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(docTitle) + '</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>' + css + '</style></head><body>' + html + '</body></html>'); d.close();
+    const go = () => {
+      const prevTitle = document.title; document.title = docTitle;
+      f.contentWindow.onafterprint = () => { document.title = prevTitle; setTimeout(() => f.remove(), 500); };
+      f.contentWindow.focus(); f.contentWindow.print();
+    };
+    this.setState({ printMenu: false, printScope: scope }, () => { const ready = () => (d.fonts ? d.fonts.ready : Promise.resolve()).then(() => setTimeout(go, 50)); d.readyState === 'complete' ? ready() : (f.onload = ready); });
+  }
+
+  renderVals() {
+    const { books, bookIdx, isFull, printMenu, settingsOpen, status, confirmDelete, settings, libName, printScope, renameIdx, renameValue, renameMeta, folderOpen, booting, resumable, looseAlert } = this.state;
+    const gated = !folderOpen && !booting;
+    const b = this.book(), cur = this.current();
+    const opt = (key, options) => options.map(([label, v]) => ({ label, pick: () => this.setSetting(key, v), bg: settings[key] === v ? '#000' : 'transparent', color: settings[key] === v ? '#fff' : '#525252' }));
+    const settingRows = [
+      { label: 'Font', options: opt('font', [['Sans', 'sans'], ['Serif', 'serif'], ['Mono', 'mono'], ['Courier', 'courier']]) },
+      { label: 'Size', options: opt('size', [['16', 16], ['18', 18], ['20', 20], ['22', 22]]) },
+      { label: 'Typewriter scroll', options: opt('typewriter', [['On', true], ['Off', false]]) },
+      { label: 'Dim other paragraphs', options: opt('dim', [['On', true], ['Off', false]]) },
+      { label: 'Receipt width', options: opt('roll', [['58mm', 58], ['80mm', 80]]) }
+    ];
+    const chapters = b ? b.chapters.map((c, i) => ({
+      num: String(i + 1).padStart(2, '0'), title: c.title || 'Untitled', words: this.words(c.text).toLocaleString(),
+      color: cur && cur.id === c.id ? '#000' : '#525252', weight: cur && cur.id === c.id ? 500 : 400, bg: cur && cur.id === c.id ? '#f5f5f5' : 'transparent',
+      open: () => this.setState({ currentId: c.id }),
+      onDragStart: () => { this.dragId = c.id; }, onDragOver: e => e.preventDefault(), onDrop: e => { e.preventDefault(); this.move(this.dragId, c.id); this.dragId = null; }
+    })) : [];
+    return {
+      gated, resumable, looseAlert, openBookSettings: this.openBookSettings, renameGoal: String(renameMeta.wordGoal == null ? '' : renameMeta.wordGoal), onGoalChange: this.onGoalChange,
+      colorOpts: this.palette.map(c => ({ bg: c || '#fff', border: (renameMeta.color || '') === c ? '#000' : '#e5e7eb', pick: () => this.pickColor(c) })), gateAction: resumable ? this.resume : this.open, gateLabel: resumable ? 'Resume' : 'Open folder',
+      isFull: isFull && folderOpen, notFull: !isFull || !folderOpen, fullPadTop: settings.typewriter ? '45vh' : '96px', showShelf: folderOpen && !isFull && !b, showBook: folderOpen && !isFull && !!b,
+      printMenu: printMenu && folderOpen, settingsOpen: settingsOpen && folderOpen, status, settingRows,
+      noFolder: !libName, hasFolder: !!libName, libName: libName || 'None', folderBtn: libName ? 'Change' : 'Choose',
+      logOut: this.logOut, syncLabel: this.libHandle ? (this.dirty.size ? this.dirty.size + ' unsaved' : 'Folder') : 'Reopen folder to sync', sync: this.sync,
+      confirmDelete, askDelete: this.askDelete, askDeleteBook: this.askDeleteBook,
+      deleteTitle: this.state.confirmBook ? (books[renameIdx] ? books[renameIdx].name : '') : (cur ? (cur.title || 'Untitled') : ''),
+      confirmDeleteAction: this.state.confirmBook ? this.deleteBook : this.deleteChapter,
+      emptyShelf: !books.length, renaming: folderOpen && (renameIdx >= 0 || renameIdx === -2), renamingExisting: renameIdx >= 0, renameValue, renameRef: this.renameRef,
+      books: books.map((x, i) => { const w = x.chapters.reduce((n, c) => n + this.words(c.text), 0), g = (x.meta || {}).wordGoal; return { name: x.name, spine: (x.meta || {}).color || '#f5f5f5', meta: x.chapters.length + (x.chapters.length === 1 ? ' chapter · ' : ' chapters · ') + w.toLocaleString() + (g ? ' / ' + g.toLocaleString() : '') + ' words', open: () => this.openBook(i), rename: () => this.startRename(i) }; }),
+      bookTitle: b ? b.name : '',
+      chapters, chapterWords: cur ? this.words(cur.text).toLocaleString() : '', bookWords: b ? b.chapters.reduce((n, c) => n + this.words(c.text), 0).toLocaleString() : '',
+      wordsLabel: (() => { if (!cur || !b) return ''; const cw = this.words(cur.text), bw = b.chapters.reduce((n, c) => n + this.words(c.text), 0), g = (b.meta || {}).wordGoal; const bl = bw.toLocaleString() + (g ? ' / ' + g.toLocaleString() : ''); return b.chapters.length > 1 || g ? cw.toLocaleString() + ' · ' + bl : cw.toLocaleString(); })(),
+      editorRef: this.editorRef, titleRef: this.titleRef, contentFont: this.fontFamily(), scrollRef: this.scrollRef, fileInputRef: this.fileInputRef,
+      onInput: this.onInput, onPaste: this.onPaste, onTitleBlur: this.onTitleBlur, onTitleKey: this.onTitleKey,
+      open: this.open, newBook: this.newBook, newChapter: this.newChapter, deleteChapter: this.deleteChapter, print: this.print, closeMenus: this.closeMenus, closeAlert: this.closeAlert, stop: this.stop, openSettings: this.openSettings,
+      backToShelf: this.backToShelf, onRenameChange: this.onRenameChange, onRenameKey: this.onRenameKey, commitRename: this.commitRename, cancelRename: this.cancelRename,
+      hoverToolsOn: () => { clearTimeout(this.toolsTimer); this.setState({ hoverTools: true }); },
+      hoverToolsOff: () => { clearTimeout(this.toolsTimer); this.toolsTimer = setTimeout(() => this.setState({ hoverTools: false }), 600); },
+      toolsOpacity: this.state.hoverTools || this.state.findOpen ? 1 : 0,
+      findOpen: this.state.findOpen, find: this.state.find, findRef: this.findRef, toggleFind: this.toggleFind, onFindChange: this.onFindChange, onFindKey: this.onFindKey, findPrev: this.findPrev, findNext: this.findNext,
+      findLabel: this.state.find ? (this.state.findCount ? (this.state.findIdx + 1) + '/' + this.state.findCount : '0') : '',
+      findIconColor: this.state.findOpen ? '#000' : '#525252',
+      hoverTitleOn: () => { clearTimeout(this.titleTimer); this.setState({ hoverTitle: true }); },
+      hoverTitleOff: () => { clearTimeout(this.titleTimer); this.titleTimer = setTimeout(() => this.setState({ hoverTitle: false }), 600); },
+      railCollapsed: this.state.railCollapsed, railOpen: !this.state.railCollapsed, railWidth: this.state.railCollapsed ? '56px' : '280px',
+      notesOpen: this.state.notesOpen, notes: cur ? (cur.notes || '') : '', notesRef: this.notesRef, toggleNotes: this.toggleNotes, onNotesChange: this.onNotesChange,
+      notesWidth: this.state.notesOpen ? '300px' : '0px', wordsRight: this.state.notesOpen ? '320px' : '20px', notesIconColor: this.state.notesOpen || (cur && (cur.notes || '').trim()) ? '#000' : '#525252',
+      gridCols: (this.state.railCollapsed ? '56px' : '280px') + ' minmax(0,1fr)' + (this.state.notesOpen ? ' 300px' : ''),
+      toggleRail: () => this.setState(s => { const v = !s.railCollapsed; try { localStorage.setItem('writer.rail', v ? 'min' : 'max'); } catch (e) {} return { railCollapsed: v }; }),
+      titleIconOpacity: this.state.hoverTitle ? 1 : 0,
+      printChapter: this.printChapter, printBook: this.printBook, downloadChapter: this.downloadChapter, downloadBook: this.downloadBook, printReceipt: this.printReceipt, printPaper: this.printPaper,
+      printScopeLabel: printScope === 'chapter' ? 'Print Chapter' : 'Print Book',
+      togglePageNums: () => this.setSetting('pageNums', !settings.pageNums), pageNumsBg: settings.pageNums ? '#000' : '#fff',
+      enterFull: this.enterFull, exitFull: this.exitFull, onFilesPicked: this.onFilesPicked
+    };
+  }
+}
+</script>
+</body>
+</html>

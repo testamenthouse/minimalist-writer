@@ -1,0 +1,27 @@
+{
+  "name": "writer-desktop",
+  "productName": "Writer",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Writer",
+  "author": "Brian Fegter",
+  "main": "src/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OWNER/minimalist-writer.git"
+  },
+  "scripts": {
+    "sync": "node scripts/sync.js",
+    "start": "npm run sync && electron .",
+    "smoke": "npm run sync && WRITER_SMOKE=1 electron .",
+    "dist": "npm run sync && electron-builder --publish never",
+    "release": "npm run sync && electron-builder --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "electron": "^44.6.0",
+    "electron-builder": "^26.15.3"
+  }
+}
