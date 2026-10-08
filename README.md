@@ -204,7 +204,6 @@ The web version loads React from a CDN the first time; the desktop app ships it.
 index.html           The app. Template and logic in one file; the only source of the UI
 support.js           The small runtime that binds the template
 SPEC.md              The full behavior spec: every screen, rule and file-format detail
-DESIGN-NOTES.md      The design decision log
 desktop/
   src/               Electron main, preload and dictation bridge
   dictate/           The Swift on-device speech helper
