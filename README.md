@@ -11,7 +11,7 @@ A minimalist book-writing app that works offline. A library is a folder on your 
 3. Open the folder and double-click `index.html`. If it opens in another browser, right-click it and choose **Open With → Google Chrome**.
 4. Click **Open folder** and pick where your books should live.
 
-The desktop apps under [Get it](#get-it) are the same page in a window, with on-device dictation and automatic updates.
+Chrome has everything the app needs, dictation included.
 
 **There is no database.** The only storage is the folder you choose. The whole app runs off that folder: every book, chapter, note, template and setting is a file in it, read and written directly. No accounts, no server, no analytics. Everything stays on your machine.
 
@@ -25,7 +25,6 @@ The desktop apps under [Get it](#get-it) are the same page in a window, with on-
 - [Printing and downloads](#printing-and-downloads)
 - [Settings](#settings)
 - [Keyboard shortcuts](#keyboard-shortcuts)
-- [Building the desktop app](#building-the-desktop-app)
 - [Running the web version](#running-the-web-version)
 - [Repository layout](#repository-layout)
 
@@ -35,24 +34,21 @@ The desktop apps under [Get it](#get-it) are the same page in a window, with on-
 - **A clean editor.** Markdown stays in the file as you typed it. The editor dims the markers in place and renders headings, quotes, lists, bold and italic, the way iA Writer does.
 - **Write mode.** Fullscreen, nothing but the text. Typewriter scrolling keeps the line you are on centered. Dim fades every paragraph but the one you are in.
 - **Notes.** A notes pane beside every chapter, saved to a sidecar file, never printed or counted.
-- **Dictation.** Speak at the caret. On the Mac the recognition runs on-device through Apple's own recognizer.
+- **Dictation.** Speak at the caret, through Chrome's speech engine.
 - **Print.** Letter pages with optional page numbers, or a receipt printer roll at 58mm or 80mm.
 - **Templates.** Keep chapter starting points in a `Templates/` folder and pick one when you add a chapter.
 - **Autosave and folder watching.** Every change is on disk within a second. Edit a file in another app and Writer picks it up.
 - **Light, dark, or system theme.** Dark is charcoal, not black.
-- **Show in Finder.** In the Mac app, a book's settings open its folder in Finder.
 
 ## Get it
-
-**Mac app (Apple Silicon).** Download the latest `.dmg.zip` from [Releases](https://github.com/testamenthouse/minimalist-writer/releases), unzip it, open the DMG, and drag Writer to Applications. The app opens straight into your remembered library.
-
-**Windows app.** Download the latest `.exe` installer from [Releases](https://github.com/testamenthouse/minimalist-writer/releases). It installs for the current user with one click. Dictation is Mac only.
 
 **Web version.** Open the app in Google Chrome:
 
 https://testamenthouse.github.io/minimalist-writer/
 
-Chrome is required because the app opens a folder on your disk through the File System Access API. Other browsers show a "Google Chrome required" screen. From a checkout, serve the repo folder with any static server and open it in Chrome.
+**Your own copy.** Download the ZIP and double-click `index.html`, as described at the top. Same app, no server.
+
+Chrome is required because the app opens a folder on your disk through the File System Access API. Other browsers show a "Google Chrome required" screen.
 
 Phones and tablets get a one-column layout but cannot open a folder. Writing happens on a desktop.
 
@@ -113,8 +109,7 @@ Click the mic in the chapter tools, press `⌘⇧D`, or use the Dictate toggle i
 
 Speak punctuation the way macOS Dictation expects: `period`, `comma`, `question mark`, `open quote`, `new paragraph`, and so on.
 
-- **Mac app:** recognition runs on-device through Apple's Speech framework. The first use asks for microphone and speech recognition permission. macOS Dictation must be turned on in System Settings → Keyboard → Dictation.
-- **Web version:** uses Chrome's speech engine. Other browsers cannot dictate.
+uses Chrome's speech engine. Other browsers cannot dictate.
 
 ## Printing and downloads
 
@@ -150,66 +145,11 @@ Settings are saved to `writer.json` in the library, so they follow the folder.
 | `Enter` in the title | Move to the body |
 | `Esc` | Close dialog, close find, or leave Write mode |
 
-## Building the desktop app
-
-The desktop app is an [Electron](https://www.electronjs.org/) shell around the root `index.html`, built with electron-builder. That page is the only source of the UI. The Mac build targets Apple Silicon. The Windows build is a 64-bit one-click installer.
-
-**You need**
-
-- Node.js 22
-- On the Mac: Xcode command line tools (`xcode-select --install`) for the Swift dictation helper
-- For a signed, notarized Mac release: a Developer ID certificate and an Apple ID app-specific password
-
-**Run it locally**
-
-```sh
-git clone https://github.com/testamenthouse/minimalist-writer.git
-cd minimalist-writer/desktop
-npm install
-env -u ELECTRON_RUN_AS_NODE npm start
-```
-
-`npm start` first runs `npm run sync`, which copies the page into `desktop/app` with the Google Fonts link swapped for bundled Inter and React pointed at the vendored copy, so the packaged app is fully offline. On the Mac it also compiles `dictate/dictate.swift` into `bin/dictate`.
-
-**Build an installer**
-
-```sh
-cd desktop
-npm run dist
-```
-
-On a Mac this writes `Writer-<version>-mac-arm64.dmg` and wraps it as `Writer-<version>-mac-arm64.dmg.zip` in `desktop/dist`. The zip is the download to hand out. On Windows it writes the NSIS installer.
-
-**Publish a release**
-
-Releases are built and published from your own machine. Nothing runs automatically on GitHub; the workflows under `.github/workflows` are kept for reference and only run when started by hand.
-
-Bump `version` in `desktop/package.json`, then on a Mac:
-
-```sh
-cd desktop
-GH_TOKEN=<github token with repo scope> \
-CSC_LINK=<Developer ID certificate .p12, base64> CSC_KEY_PASSWORD=<its password> \
-APPLE_ID=<apple id> APPLE_APP_SPECIFIC_PASSWORD=<app-specific password> APPLE_TEAM_ID=<team id> \
-npm run release
-```
-
-This builds, signs and notarizes the Mac app and uploads the DMG zip to a GitHub release named after the version. Without the signing variables the build still succeeds, but macOS will refuse to open the result on other machines. For the Windows installer run `GH_TOKEN=<token> npm run release` on a Windows machine; it uploads to the same release.
-
-**Updates.** The app checks GitHub Releases on launch and hourly and offers **Restart to Update** when a download is ready. On the Mac, automatic updates need an app zip target that the current build does not produce, so Mac users download the new DMG from Releases until that target is restored. Windows updates work through the installer.
-
-**Troubleshooting**
-
-- *Electron starts as plain Node, or nothing opens.* VS Code terminals set `ELECTRON_RUN_AS_NODE=1`. Unset it, as in the commands above.
-- *npm reports blocked install scripts.* Run `npm approve-scripts --allow-scripts-pending` in `desktop/` so the Electron binary downloads.
-- *Dictation crashes or never prompts in a dev run.* The dev script already handles this (the helper disclaims the terminal as its responsible process). If macOS Dictation itself is off, the app tells you and opens the settings pane.
-- *`npm run smoke`* runs a headless load check and exits. `DICTATE_BIN=<script> npm run smoke` drives the dictation bridge with a fake helper.
-
 ## Running the web version
 
 There is no build step. The app is `index.html` plus `support.js` at the repo root, so GitHub Pages serves it as it is. To run it locally, open `index.html` in Chrome straight from the folder, or serve the folder with any static server.
 
-The web version loads React from a CDN the first time; the desktop app ships it.
+The page loads React from a CDN the first time it opens.
 
 ## Repository layout
 
@@ -217,12 +157,7 @@ The web version loads React from a CDN the first time; the desktop app ships it.
 index.html           The app. Template and logic in one file; the only source of the UI
 support.js           The small runtime that binds the template
 SPEC.md              The full behavior spec: every screen, rule and file-format detail
-desktop/
-  src/               Electron main, preload and dictation bridge
-  dictate/           The Swift on-device speech helper
-  scripts/           sync, build-dictate, zip-dmg
-  electron-builder.yml
-.github/workflows/   Release and Pages workflows, manual-only (nothing runs automatically)
+.github/workflows/   Pages workflow, manual-only (nothing runs automatically)
 ```
 
 ## License

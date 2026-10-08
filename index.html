@@ -189,9 +189,6 @@ a{color:var(--fg)}a:hover{color:var(--muted)}
       </div>
       <sc-if value="{{ renamingExisting }}" hint-placeholder-val="{{ false }}">
         <div style="padding-top:10px;border-top:1px solid var(--line)">
-          <sc-if value="{{ canReveal }}" hint-placeholder-val="{{ false }}">
-            <button onClick="{{ revealBook }}" style="display:block;width:100%;background:none;border:0;padding:8px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px;text-align:center" style-hover="color:var(--fg);background:var(--fill)">{{ revealLabel }}</button>
-          </sc-if>
           <button onClick="{{ askDeleteBook }}" style="display:block;width:100%;background:none;border:0;padding:8px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:6px;text-align:center" style-hover="color:var(--fg);background:var(--fill)">Delete book</button>
         </div>
       </sc-if>
@@ -434,12 +431,10 @@ a{color:var(--fg)}a:hover{color:var(--muted)}
 <input type="file" ref="{{ fileInputRef }}" webkitdirectory="" multiple="{{ true }}" onChange="{{ onFilesPicked }}" style="display:none">
 </x-dc>
 <script type="text/x-dc" data-dc-script>
-// Dictation. The Mac app talks to the system speech recognizer through the window.dictate bridge
-// (desktop/src/dictate.js → bin/dictate, on-device Speech.framework); the browser build uses Chrome's Web
-// Speech API and refuses other browsers. Final segments go into the editor through execCommand so onInput
+// Dictation through Chrome's Web Speech API; other browsers are refused. Final segments go into the editor through execCommand so onInput
 // (serialize, decorate, autosave, undo) runs unchanged; the partial segment is only previewed.
 // "new paragraph" / "new line" inside a segment break the paragraph; "period", "comma", "question mark" and the
-// other spoken marks become punctuation (neither desktop engine does that itself).
+// other spoken marks become punctuation (the engine does not do that itself).
 const Dictation = {
   isChrome() {
     const brands = navigator.userAgentData && navigator.userAgentData.brands;
@@ -447,7 +442,7 @@ const Dictation = {
     const ua = navigator.userAgent; return /Chrome\//.test(ua) && !/Edg\/|OPR\/|Brave|SamsungBrowser|CriOS|Vivaldi|YaBrowser/.test(ua);
   },
   webSR() { return window.SpeechRecognition || window.webkitSpeechRecognition; },
-  backend() { if (window.dictate) return 'native'; if (this.webSR() && this.isChrome()) return 'web'; return null; },
+  backend() { return this.webSR() && this.isChrome() ? 'web' : null; },
   // spoken punctuation, the way macOS Dictation reads it: the command word becomes its mark, attached to the word
   // before it (an opening mark to the word after it), the next word capitalized after a sentence end; a mark the
   // recognizer already attached around the command ("store. Period.") is folded into the spoken one
@@ -522,20 +517,6 @@ const Dictation = {
     let active = false, off = null, rec = null, closing = null;
     const be = this.backend();
     const finish = () => { if (!active && !closing) return; active = false; clearTimeout(closing); closing = null; if (off) { off(); off = null; } onState('off'); };
-    const startNative = lang => {
-      off = window.dictate.on(ev => {
-        if (ev.t === 'ready') onState('listening');
-        else if (ev.t === 'partial') onPartial(Dictation.spoken(ev.text));
-        else if (ev.t === 'final') { onPartial(''); if (ev.text) onFinal(ev.text); }
-        else if (ev.t === 'level') onLevel(+ev.v || 0);
-        else if (ev.t === 'note') onError(ev.msg);
-        else if (ev.t === 'log') console.log('dictate: ' + ev.msg);
-        else if (ev.t === 'denied') onError(ev.what === 'microphone' ? 'Microphone blocked' : 'Speech recognition blocked');
-        else if (ev.t === 'error') onError(ev.msg || 'Dictation failed');
-        else if (ev.t === 'exit') finish();
-      });
-      window.dictate.start(lang).then(ok => { if (!ok) finish(); });
-    };
     const startWeb = lang => {
       const R = Dictation.webSR(); rec = new R(); rec.continuous = true; rec.interimResults = true; rec.lang = lang || navigator.language || 'en-US';
       let fatal = false;
@@ -553,19 +534,17 @@ const Dictation = {
     };
     return {
       backend: be,
-      start(lang) { if (active || !be) return; active = true; onState('starting'); if (be === 'native') startNative(lang); else startWeb(lang); },
-      stop() { if (!active) return; active = false; closing = setTimeout(finish, 3000); if (be === 'native') window.dictate.stop(); else if (rec) { try { rec.stop(); } catch (err) { finish(); } } }
+      start(lang) { if (active || !be) return; active = true; onState('starting'); startWeb(lang); },
+      stop() { if (!active) return; active = false; closing = setTimeout(finish, 3000); if (rec) { try { rec.stop(); } catch (err) { finish(); } } }
     };
   }
 };
 const SERMON_BUILDER_URL = 'https://testamenthouse.github.io/sermon-builder/';
 // The GitHub Pages demo wears a link to its repo in the top-right corner; installed apps and local checkouts do not.
 const REPO_URL = 'https://github.com/testamenthouse/minimalist-writer', ON_PAGES = /\.github\.io$/i.test(location.hostname);
-// ---- FS: the folder adapter. The Mac app's preload exposes window.writer (paths resolved in the main process, Node fs);
-// the browser falls back to the File System Access API with the folder handle in IndexedDB. Same interface either way:
-// relative, forward-slashed paths; list() is one recursive walk (name + mtime + size, no reads); nothing else is cached.
+// ---- FS: the folder adapter over the File System Access API, with the folder handle in IndexedDB. Relative,
+// forward-slashed paths; list() is one recursive walk (name + mtime + size, no reads); nothing else is cached.
 const FS = (() => {
-  if (window.writer) return { kind: 'electron', supported: true, ...window.writer, resumeClick: window.writer.resume, ensureWrite: async () => true };
   const DB = 'writer', STORE = 'kv', KEY = 'lib';
   let root = null;
   const idb = () => new Promise((res, rej) => { const r = indexedDB.open(DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
@@ -599,7 +578,6 @@ const FS = (() => {
       await src.removeEntry(fn, { recursive: true });
     },
     async mkdir(p) { await dir(p, true); },
-    watch: null, reveal: null, async libraryPath() { return ''; },
     // Headless QA: hand the adapter a directory handle (e.g. OPFS root) without the picker.
     __setLibrary(h) { root = h; }
   };
@@ -617,7 +595,7 @@ class Component extends DCLogic {
     narrow: window.matchMedia('(max-width: 760px)').matches, drawer: false
   };
   editorRef = React.createRef(); titleRef = React.createRef(); scrollRef = React.createRef(); fileInputRef = React.createRef(); renameRef = React.createRef(); tplRef = React.createRef(); findRef = React.createRef(); notesRef = React.createRef(); findRanges = [];
-  lib = null; unwatch = null; tplDirName = 'Templates'; noFs = false; dragId = null; dict = null; dictTarget = Dictation.inserter(() => this.editorRef.current); dirty = new Set(); dirtyTpl = new Set(); saveTimer = null; needPerm = false; lastCfg = null; writing = 0; sigs = null; watchTimer = null; lastInput = 0; caretEnd = false;
+  lib = null; tplDirName = 'Templates'; noFs = false; dragId = null; dict = null; dictTarget = Dictation.inserter(() => this.editorRef.current); dirty = new Set(); dirtyTpl = new Set(); saveTimer = null; needPerm = false; lastCfg = null; writing = 0; sigs = null; watchTimer = null; lastInput = 0; caretEnd = false;
   palette = ['', '#d9d9d9', '#f5c2c2', '#f8d9a8', '#f6e7a1', '#c8e6c9', '#bfe0f5', '#d6ccf2', '#f5c8e2'];
 
   componentDidMount() {
@@ -1181,9 +1159,6 @@ class Component extends DCLogic {
     }
     this.fileInputRef.current.click();
   };
-  // Show in Finder (Explorer on Windows): the Mac app only; the browser has no path to give.
-  revealBook = () => { const b = this.state.books[this.state.renameIdx]; if (b && FS.reveal) FS.reveal(b.name); };
-  revealLibrary = () => { if (FS.reveal) FS.reveal(''); };
   onFilesPicked = async e => {
     const all = Array.from(e.target.files).filter(f => /\.(md|txt)$/i.test(f.name) || /^book\.json$/i.test(f.name));
     const rel = Array.from(e.target.files).map(f => f.webkitRelativePath.split('/').slice(1).join('/'));
@@ -1224,9 +1199,9 @@ class Component extends DCLogic {
     this.setState({ libName, books, templates: templates || [], bookIdx: -1, currentId: null, tplScreen: false, tplEdit: '', settingsOpen: false, folderOpen: true }, () => { this.persist(); this.startWatch(); });
   }
 
-  // ---- remembered folder: the adapter remembers it (a path in the Mac app, a handle in IndexedDB on the web); books are always read from disk
-  // The web build runs only in Google Chrome; the Mac app (window.dictate bridge) is always allowed. Nothing else renders while blocked.
-  blocked = () => !window.dictate && !Dictation.isChrome();
+  // ---- remembered folder: the adapter keeps the handle in IndexedDB; books are always read from disk
+  // The app runs only in Google Chrome. Nothing else renders while blocked.
+  blocked = () => !Dictation.isChrome();
   boot = async () => {
     let r = null; try { r = await FS.resume(); } catch (e) {}
     if (r && r.name) { this.lib = r; await this.openRemembered(); }
@@ -1260,7 +1235,7 @@ class Component extends DCLogic {
     return files;
   }
 
-  // ---- watch the folder: the Mac app gets OS change events through the adapter; the web polls file stamps while visible.
+  // ---- watch the folder: poll file stamps every 3 s while the tab is visible.
   // Disk wins for any book with nothing pending here. Signatures come from one listing: per book (and Templates/) the
   // sorted name:mtime:size of its files; '' is writer.json.
   sigsFrom(list) {
@@ -1281,14 +1256,13 @@ class Component extends DCLogic {
   }
   startWatch(delay) {
     this.stopWatch(); if (!this.lib || !this.state.folderOpen) return;
-    if (FS.watch) { this.unwatch = FS.watch(() => { clearTimeout(this.watchTimer); this.watchTimer = setTimeout(this.watchTick, 250); }); if (delay != null) this.watchTimer = setTimeout(this.watchTick, delay); }
-    else this.watchTimer = setTimeout(this.watchTick, delay == null ? 3000 : delay);
+    this.watchTimer = setTimeout(this.watchTick, delay == null ? 3000 : delay);
   }
-  stopWatch() { clearTimeout(this.watchTimer); this.watchTimer = null; if (this.unwatch) { this.unwatch(); this.unwatch = null; } }
+  stopWatch() { clearTimeout(this.watchTimer); this.watchTimer = null; }
   watchTick = async () => {
     this.watchTimer = null;
     try { if (this.lib && this.state.folderOpen && document.visibilityState === 'visible' && !this.writing) await this.pullDisk(); } catch (e) { console.error(e); }
-    if (!FS.watch) this.startWatch(); else if (this.writing && this.lib) this.watchTimer = setTimeout(this.watchTick, 500);
+    this.startWatch();
   };
   flagCaret(on) {
     const a = document.activeElement;
@@ -1467,7 +1441,7 @@ class Component extends DCLogic {
       noFolder: !libName, hasFolder: !!libName, libName: libName || 'None', folderBtn: libName ? 'Change' : 'Choose',
       logOut: this.logOut, syncLabel: this.lib ? (this.dirty.size + this.dirtyTpl.size ? (this.dirty.size + this.dirtyTpl.size) + ' unsaved' : 'Folder') : 'Reopen folder to sync', sync: this.sync,
       confirmDelete, askDelete: this.askDelete, askDeleteBook: this.askDeleteBook,
-      canReveal: !!(FS.reveal && this.lib), revealLabel: /Mac/.test(navigator.platform) ? 'Show in Finder' : 'Show in Explorer', revealBook: this.revealBook, revealLibrary: this.revealLibrary,
+      
       deleteTitle: this.state.confirmTpl ? (this.state.templates.find(t => t.file === this.state.confirmTpl) || {}).name || '' : this.state.confirmBook ? (books[renameIdx] ? books[renameIdx].name : '') : (cur ? (cur.title || 'Untitled') : ''),
       confirmDeleteAction: this.state.confirmTpl ? this.deleteTemplate : this.state.confirmBook ? this.deleteBook : this.deleteChapter,
       tplPickOpen: this.state.tplPick, tplSaveOpen: this.state.tplSave, tplName: this.state.tplName, tplRef: this.tplRef, blankChapter: this.blankChapter,
