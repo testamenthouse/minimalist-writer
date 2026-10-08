@@ -4,6 +4,15 @@ A minimalist book-writing app that works offline. A library is a folder on your 
 
 **Try it now:** https://testamenthouse.github.io/minimalist-writer/ (Google Chrome, then pick any folder)
 
+**Or run it yourself, no technical knowledge needed:** download the folder and double-click `index.html`. That is the whole setup. There is nothing to install, no build step and no server, and your writing never leaves your machine.
+
+1. Click the green **Code** button at the top of this page, then **Download ZIP**.
+2. Unzip it anywhere you like.
+3. Open the folder and double-click `index.html`. If it opens in another browser, right-click it and choose **Open With → Google Chrome**.
+4. Click **Open folder** and pick where your books should live.
+
+The desktop apps under [Get it](#get-it) are the same page in a window, with on-device dictation and automatic updates.
+
 **There is no database.** The only storage is the folder you choose. The whole app runs off that folder: every book, chapter, note, template and setting is a file in it, read and written directly. No accounts, no server, no analytics. Everything stays on your machine.
 
 - [What it does](#what-it-does)
@@ -198,7 +207,7 @@ This builds, signs and notarizes the Mac app and uploads the DMG zip to a GitHub
 
 ## Running the web version
 
-There is no build step. The app is `index.html` plus `support.js` at the repo root, so GitHub Pages serves it as it is. To run it locally, serve the repo folder with any static server and open it in Chrome.
+There is no build step. The app is `index.html` plus `support.js` at the repo root, so GitHub Pages serves it as it is. To run it locally, open `index.html` in Chrome straight from the folder, or serve the folder with any static server.
 
 The web version loads React from a CDN the first time; the desktop app ships it.
 
