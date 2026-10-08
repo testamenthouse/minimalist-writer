@@ -2,7 +2,9 @@
 
 A minimalist book-writing app that works offline. A library is a folder on your disk, each book is a subfolder, and each chapter is a Markdown file. Writer reads and writes those files directly and keeps nothing else, so your manuscript is always yours, in plain text, wherever you keep it.
 
-**Try it now:** https://testamenthouse.github.io/minimalist-writer/ (Google Chrome, then pick any folder)
+**Try it now, or use it forever, without downloading anything:** https://testamenthouse.github.io/minimalist-writer/
+
+Open that link in Google Chrome and pick a folder for your books. That is the full app, not a demo. Nothing is installed, and no data is shared with anyone: nothing is sent to a server, and the page never sees your files. Everything stays on your own computer, in the folder you chose.
 
 **Or run it yourself, no technical knowledge needed:** download the folder and double-click `index.html`. That is the whole setup. There is nothing to install, no build step and no server, and your writing never leaves your machine.
 
