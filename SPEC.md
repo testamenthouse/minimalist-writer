@@ -62,7 +62,7 @@ type Persisted = { settings: Settings }                       // the ONLY thing 
 ## Screens
 
 ### 0a. Browser check
-The web build runs only in Google Chrome. `blocked()` (`Dictation.isChrome()` false) renders a single screen **instead of everything else**, before the gate: heading `Writer`, a black link-button `Get Google Chrome` (google.com/chrome), status line `Google Chrome required`. `boot()` is skipped, so the remembered folder is never touched.
+The web build runs only in desktop Google Chrome. `blocked()` (`Dictation.isChrome()` false, or `Dictation.hasPicker()` false: no `window.showDirectoryPicker`, which rules out Chrome on Android and every iOS browser) renders a single screen **instead of everything else**, before the gate: heading `Writer`, a black link-button `Get Google Chrome` (google.com/chrome; omitted when `Dictation.mobile()` says the device is a phone or tablet, since installing Chrome there changes nothing), status line `Desktop Google Chrome required`. `boot()` is skipped, so the remembered folder is never touched. Ruling 2026-10-08: Writer is desktop only; there is no phone or tablet storage story and none is planned.
 
 ### 0. Gate (no folder open)
 Rendered **instead of everything else** while `folderOpen === false` (and `booting === false`): no shelf, no settings, no overlays, no keyboard shortcuts (the global keydown handler returns early).
@@ -231,13 +231,14 @@ The Electron shell built 2026-10-07 was removed 2026-10-08: Chrome persists the 
 - `index.html` — the app (template + logic in one file; references `support.js`). Lives at the repo root so GitHub Pages serves it.
 - `support.js` — the small template runtime the page needs.
 
-## Phones and touch
+## Narrow windows and touch
 
-Below 760px the Book screen is one column. The chapter rail is a drawer: a fixed top-left pair (Books, Chapters)
+Phones and tablets never reach these screens (see 0a): the layout below is for a narrow desktop Chrome window and
+for touch screens on a desktop. Below 760px the Book screen is one column. The chapter rail is a drawer: a fixed top-left pair (Books, Chapters)
 opens it over the page, its scrim or a chapter row closes it, and its top row (new chapter, print, download, book)
 closes it when used. Notes cover the whole screen with the same close chevron; the tool strip is always visible, a
 solid band, and the find bar wraps under it on its own row; dialogs fit the width; the shelf and template screens
 tighten their padding. Hover-revealed icons are always visible on touch screens. Everything above 760px is
 unchanged. CSS lives in the `<style>` block as `.wr-*` class rules with `!important` over the inline styles
 (`wr-page`, `wr-main`, `wr-rail`, `wr-notes`, `wr-tools`, `wr-find`, `wr-dlg`, `wr-print`, `wr-dict`, `wr-h1`,
-`wr-mbar`, `wr-scrim`, `wr-wide`, `wr-vh`/`wr-minvh` for dvh). Folder access still needs desktop Chrome.
+`wr-mbar`, `wr-scrim`, `wr-wide`, `wr-vh`/`wr-minvh` for dvh).

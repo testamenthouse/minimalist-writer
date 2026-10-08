@@ -232,8 +232,10 @@ a{color:var(--fg)}a:hover{color:var(--muted)}
 <sc-if value="{{ blocked }}" hint-placeholder-val="{{ false }}">
   <div class="wr-minvh" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px;box-sizing:border-box">
     <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em;color:var(--fg);text-align:center;margin-bottom:6px">Writer</div>
-    <a href="https://www.google.com/chrome/" style="display:inline-block;background:var(--fg);color:var(--bg);text-decoration:none;padding:10px 18px;font:inherit;font-size:14px;font-weight:500;border-radius:6px" style-hover="background:var(--fg-hover)">Get Google Chrome</a>
-    <div style="font-size:13px;color:var(--faint);min-height:16px">Google Chrome required</div>
+    <sc-if value="{{ chromeLink }}" hint-placeholder-val="{{ false }}">
+      <a href="https://www.google.com/chrome/" style="display:inline-block;background:var(--fg);color:var(--bg);text-decoration:none;padding:10px 18px;font:inherit;font-size:14px;font-weight:500;border-radius:6px" style-hover="background:var(--fg-hover)">Get Google Chrome</a>
+    </sc-if>
+    <div style="font-size:13px;color:var(--faint);min-height:16px">Desktop Google Chrome required</div>
   </div>
 </sc-if>
 
@@ -441,6 +443,14 @@ const Dictation = {
     const brands = navigator.userAgentData && navigator.userAgentData.brands;
     if (brands) return brands.some(b => b.brand === 'Google Chrome');
     const ua = navigator.userAgent; return /Chrome\//.test(ua) && !/Edg\/|OPR\/|Brave|SamsungBrowser|CriOS|Vivaldi|YaBrowser/.test(ua);
+  },
+  // Desktop only: the folder comes from the File System Access API, which Chrome ships on desktop and not on
+  // Android (iOS has no Chrome engine at all). A phone or tablet never gets past the blocked screen.
+  hasPicker() { return typeof window.showDirectoryPicker === 'function'; },
+  mobile() {
+    const d = navigator.userAgentData;
+    if (d && typeof d.mobile === 'boolean') return d.mobile;
+    return /Mobi|Android|iPhone|iPad|iPod/.test(navigator.userAgent);
   },
   webSR() { return window.SpeechRecognition || window.webkitSpeechRecognition; },
   backend() { return this.webSR() && this.isChrome() ? 'web' : null; },
@@ -1203,7 +1213,7 @@ class Component extends DCLogic {
 
   // ---- remembered folder: the adapter keeps the handle in IndexedDB; books are always read from disk
   // The app runs only in Google Chrome. Nothing else renders while blocked.
-  blocked = () => !Dictation.isChrome();
+  blocked = () => !Dictation.isChrome() || !Dictation.hasPicker();
   boot = async () => {
     let r = null; try { r = await FS.resume(); } catch (e) {}
     if (r && r.name) { this.lib = r; await this.openRemembered(); }
@@ -1412,7 +1422,7 @@ class Component extends DCLogic {
 
   renderVals() {
     const { books, bookIdx, isFull, printMenu, settingsOpen, status, confirmDelete, settings, libName, printScope, renameIdx, renameValue, renameMeta, folderOpen, booting, resumable, alertText, dictating, dictPartial, dictLevel, dictNote } = this.state;
-    const blocked = this.blocked();
+    const blocked = this.blocked(), chromeLink = blocked && !Dictation.mobile();
     const gated = !blocked && !folderOpen && !booting;
     const b = this.book(), cur = this.current();
     const narrow = this.state.narrow, touch = narrow || this.hq.matches;
@@ -1430,7 +1440,7 @@ class Component extends DCLogic {
       onDragStart: () => { this.dragId = c.id; }, onDragOver: e => e.preventDefault(), onDrop: e => { e.preventDefault(); this.move(this.dragId, c.id); this.dragId = null; }
     })) : [];
     return {
-      blocked, gated, resumable, alertOpen: !!alertText, repoUrl: REPO_URL, sermonBuilderUrl: SERMON_BUILDER_URL, showGit: ON_PAGES && (blocked || gated || (folderOpen && !isFull && !b && !this.state.tplEdit)), alertText, alertLinkOpen: !!this.state.alertLink, alertLink: this.state.alertLink, alertLinkLabel: this.state.alertLinkLabel, swallow: this.swallow, toggleDictation: this.toggleDictation,
+      blocked, chromeLink, gated, resumable, alertOpen: !!alertText, repoUrl: REPO_URL, sermonBuilderUrl: SERMON_BUILDER_URL, showGit: ON_PAGES && (blocked || gated || (folderOpen && !isFull && !b && !this.state.tplEdit)), alertText, alertLinkOpen: !!this.state.alertLink, alertLink: this.state.alertLink, alertLinkLabel: this.state.alertLinkLabel, swallow: this.swallow, toggleDictation: this.toggleDictation,
       dictating: !!dictating && folderOpen, dictLive: dictPartial || dictNote || (dictating === 'starting' ? 'Starting' : 'Listening'), dictLiveColor: dictPartial ? 'var(--fg)' : 'var(--faint)', dictDotAnim: dictLevel > 0.05 ? 'none' : 'wr-pulse 1.4s ease-in-out infinite', dictDotScale: (1 + dictLevel * 1.2).toFixed(2), dictColor: dictating ? 'var(--fg)' : 'var(--faint)', dictIconColor: dictating ? 'var(--fg)' : 'var(--muted)', dictIconBg: dictating ? 'var(--fill)' : 'transparent',
       openBookSettings: () => { this.setState({ drawer: false }); this.openBookSettings(); }, renameGoal: String(renameMeta.wordGoal == null ? '' : renameMeta.wordGoal), onGoalChange: this.onGoalChange,
       colorOpts: this.palette.map(c => ({ bg: c || 'var(--bg)', border: (renameMeta.color || '') === c ? 'var(--fg)' : 'var(--line)', pick: () => this.pickColor(c) })), gateAction: resumable ? this.resume : this.open, gateLabel: resumable ? 'Resume' : 'Open folder',

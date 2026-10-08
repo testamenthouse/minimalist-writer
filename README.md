@@ -1,6 +1,6 @@
 # Writer
 
-A minimalist book-writing app that works offline. A library is a folder on your disk, each book is a subfolder, and each chapter is a Markdown file. Writer reads and writes those files directly and keeps nothing else, so your manuscript is always yours, in plain text, wherever you keep it.
+A minimalist book-writing app that works offline, in Google Chrome on a desktop or laptop. A library is a folder on your disk, each book is a subfolder, and each chapter is a Markdown file. Writer reads and writes those files directly and keeps nothing else, so your manuscript is always yours, in plain text, wherever you keep it.
 
 **Try it now, or use it forever, without downloading anything:** https://testamenthouse.github.io/minimalist-writer/
 
@@ -14,6 +14,8 @@ Open that link in Google Chrome and pick a folder for your books. That is the fu
 4. Click **Open folder** and pick where your books should live.
 
 Chrome has everything the app needs, dictation included.
+
+**Desktop only.** There is no phone or tablet version. A phone browser cannot open a folder on disk, which is the only place Writer stores anything, so on an iPhone, iPad or Android device the page shows a "Desktop Google Chrome required" screen and nothing else.
 
 **There is no database.** The only storage is the folder you choose. The whole app runs off that folder: every book, chapter, note, template and setting is a file in it, read and written directly. No accounts, no server, no analytics. Everything stays on your machine.
 
@@ -50,9 +52,7 @@ https://testamenthouse.github.io/minimalist-writer/
 
 **Your own copy.** Download the ZIP and double-click `index.html`, as described at the top. Same app, no server.
 
-Chrome is required because the app opens a folder on your disk through the File System Access API. Other browsers show a "Google Chrome required" screen.
-
-Phones and tablets get a one-column layout but cannot open a folder. Writing happens on a desktop.
+Desktop Chrome is required because the app opens a folder on your disk through the File System Access API, which Chrome ships on Mac, Windows and Linux only. Other browsers, and every phone and tablet, show a "Desktop Google Chrome required" screen.
 
 ## Your library is a folder
 
@@ -111,7 +111,7 @@ Click the mic in the chapter tools, press `⌘⇧D`, or use the Dictate toggle i
 
 Speak punctuation the way macOS Dictation expects: `period`, `comma`, `question mark`, `open quote`, `new paragraph`, and so on.
 
-uses Chrome's speech engine. Other browsers cannot dictate.
+Dictation uses Chrome's speech engine. Other browsers cannot dictate.
 
 ## Printing and downloads
 
