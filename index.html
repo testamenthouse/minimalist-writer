@@ -606,7 +606,7 @@ class Component extends DCLogic {
     narrow: window.matchMedia('(max-width: 760px)').matches, drawer: false
   };
   editorRef = React.createRef(); titleRef = React.createRef(); scrollRef = React.createRef(); fileInputRef = React.createRef(); renameRef = React.createRef(); tplRef = React.createRef(); findRef = React.createRef(); notesRef = React.createRef(); findRanges = [];
-  lib = null; tplDirName = 'Templates'; noFs = false; dragId = null; dict = null; dictTarget = Dictation.inserter(() => this.editorRef.current); dirty = new Set(); dirtyTpl = new Set(); saveTimer = null; needPerm = false; lastCfg = null; writing = 0; sigs = null; watchTimer = null; lastInput = 0; caretEnd = false;
+  lib = null; tplDirName = 'Templates'; noFs = false; dragId = null; dict = null; dictTarget = Dictation.inserter(() => this.editorRef.current); dirty = new Set(); dirtyTpl = new Set(); saveTimer = null; needPerm = false; lastCfg = null; writing = 0; sigs = null; watchTimer = null; lastInput = 0;
   palette = ['', '#d9d9d9', '#f5c2c2', '#f8d9a8', '#f6e7a1', '#c8e6c9', '#bfe0f5', '#d6ccf2', '#f5c8e2'];
 
   componentDidMount() {
@@ -773,8 +773,7 @@ class Component extends DCLogic {
     }
     this.decorateAll(el);
     if (this.state.findOpen) this.runFind();
-    if (!this.state.isFull && this.caretEnd) {
-      this.caretEnd = false;
+    if (!this.state.isFull && !this.typingElsewhere()) {
       const last = el.lastElementChild, r = document.createRange(), s = window.getSelection();
       r.selectNodeContents(last); r.collapse(false); s.removeAllRanges(); s.addRange(r);
       el.focus({ preventScroll: true }); last.scrollIntoView({ block: 'nearest' });
@@ -785,6 +784,10 @@ class Component extends DCLogic {
       el.focus();
       if (this.state.settings.typewriter) requestAnimationFrame(() => this.applyAids()); else { this.applyAids(); const sc = this.scrollRef.current; if (sc) sc.scrollTop = 0; }
     }
+  }
+  typingElsewhere() {
+    const a = document.activeElement; if (!a || a === document.body || a === this.editorRef.current) return false;
+    return a.matches('input, textarea') || a.isContentEditable;
   }
   serialize(el) {
     const kids = Array.from(el.children);
@@ -1276,11 +1279,6 @@ class Component extends DCLogic {
     try { if (this.lib && this.state.folderOpen && document.visibilityState === 'visible' && !this.writing) await this.pullDisk(); } catch (e) { console.error(e); }
     this.startWatch();
   };
-  flagCaret(on) {
-    const a = document.activeElement;
-    this.caretEnd = !!on && (a === this.editorRef.current || a === document.body || a === null);
-    setTimeout(() => { this.caretEnd = false; }, 0);
-  }
   repoint(books, s, reloaded) {
     const cur = s.books[s.bookIdx], curName = cur ? cur.name : null, curIdx = cur ? cur.chapters.findIndex(c => c.id === s.currentId) : -1;
     const r = {}; if (!curName) return r;
@@ -1301,7 +1299,7 @@ class Component extends DCLogic {
     }
     if (sigs.get('Templates/') !== old.get('Templates/')) {
       if (this.dirtyTpl.size || (this.state.tplEdit && Date.now() - this.lastInput < 2000)) sigs.set('Templates/', old.get('Templates/'));
-      else { const templates = await this.readTemplates(list); this.flagCaret(!!this.state.tplEdit); this.setState(s => ({ templates, tplEdit: templates.some(t => t.file === s.tplEdit) ? s.tplEdit : '' })); }
+      else { const templates = await this.readTemplates(list); this.setState(s => ({ templates, tplEdit: templates.some(t => t.file === s.tplEdit) ? s.tplEdit : '' })); }
     }
     const curBook = this.book(), curName = curBook ? curBook.name : null;
     const fresh = new Map(), removed = [];
@@ -1312,7 +1310,6 @@ class Component extends DCLogic {
     }
     for (const name of old.keys()) if (name && name !== 'Templates/' && !sigs.has(name)) { if (this.dirty.has(name)) sigs.set(name, old.get(name)); else removed.push(name); }
     if (!fresh.size && !removed.length) return;
-    this.flagCaret(curName && fresh.has(curName));
     this.update((books, s) => {
       for (const name of removed) { const i = books.findIndex(b => b.name === name); if (i >= 0) books.splice(i, 1); }
       for (const [name, b] of fresh) { const i = books.findIndex(x => x.name === name); if (i >= 0) books[i] = b; else books.push(b); }
@@ -1343,7 +1340,6 @@ class Component extends DCLogic {
       const list = await FS.list(), books = await this.readLib(list), templates = await this.readTemplates(list);
       await this.applyConfig(); this.sigs = this.sigsFrom(list);
       books.sort((a, b) => a.name.localeCompare(b.name)); this.setState(s => ({ templates, tplEdit: templates.some(t => t.file === s.tplEdit) ? s.tplEdit : '' }));
-      this.flagCaret(!!this.book() || !!this.state.tplEdit);
       this.update((old, s) => { old.length = 0; old.push(...books); return this.repoint(old, s, new Set(books.map(b => b.name))); });
       this.dirty.clear(); this.dirtyTpl.clear();
       this.flash('Up to date');
